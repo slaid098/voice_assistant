@@ -1,0 +1,106 @@
+import re
+
+from thefuzz import fuzz
+
+from src.config import INTENT_RULES, JUNK_WORDS, WAKE_WORDS
+
+
+def parse_voice_intent(text: str) -> dict | None:
+    """Parse fuzzy voice command into structured intent."""
+    if not text:
+        return None
+
+    cleaned_text = _normalize_command_text(_strip_wake_word(text))
+    if not cleaned_text:
+        return None
+
+    best_rule = None
+    best_trigger = ""
+    best_score = 0
+
+    for rule in INTENT_RULES:
+        # We fuzzy match with each keyword in the intent rules
+        for keyword in rule["keywords"]:
+            if keyword in cleaned_text:
+                score = 100
+                trigger = keyword
+            else:
+                score = fuzz.ratio(keyword, cleaned_text)
+                trigger = keyword
+
+            if score >= rule["threshold"] and score > best_score:
+                best_score = score
+                best_rule = rule
+                best_trigger = trigger
+
+    if best_rule is None:
+        return None
+
+    payload = _extract_payload(cleaned_text, best_trigger, best_rule)
+    return {
+        "intent": best_rule["intent"],
+        "payload": payload,
+        "confidence": best_score,
+    }
+
+
+def _strip_wake_word(text: str) -> str:
+    """Strip wake words and junk words from the text."""
+    words = text.lower().strip().split()
+    cleaned_words = []
+
+    for word in words:
+        clean_word = re.sub(r"[^\w\sА-Яа-яЁё]", "", word)
+        if clean_word in WAKE_WORDS or clean_word in JUNK_WORDS:
+            continue
+        cleaned_words.append(word)
+
+    return " ".join(cleaned_words).strip()
+
+
+def _extract_payload(text: str, trigger: str, rule: dict) -> str | None:
+    """Remove matched trigger keyword and return payload text."""
+    if not rule["has_payload"]:
+        return None
+
+    text_lower = text.lower()
+    trigger_lower = trigger.lower()
+
+    raw = text_lower.replace(trigger_lower, "", 1).strip()
+    if raw == text_lower:
+        for word in trigger_lower.split():
+            raw = raw.replace(word, "", 1).strip()
+
+    words = raw.split()
+    cmd_junk = {
+        "какая",
+        "какой",
+        "какие",
+        "какая-то",
+        "найди",
+        "включи",
+        "запусти",
+        "покажи",
+        "расскажи",
+        "в",
+        "на",
+        "е",
+    }
+    while words and (words[0].lower() in JUNK_WORDS or words[0].lower() in cmd_junk):
+        words.pop(0)
+
+    result = " ".join(words).strip()
+    return result or None
+
+
+def _normalize_command_text(text: str) -> str:
+    """Normalize common ASR latin aliases for stable intent matching."""
+    normalized = text.lower()
+    aliases = {
+        "youtube": "ютуб",
+        "you tube": "ютуб",
+        "ютюб": "ютуб",
+    }
+    for source, target in aliases.items():
+        normalized = normalized.replace(source, target)
+    return normalized
