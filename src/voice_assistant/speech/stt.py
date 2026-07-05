@@ -1,17 +1,23 @@
 import io
 import wave
+
 import numpy as np
 import speech_recognition as sr
 from loguru import logger
-from src.config import SAMPLERATE
+
+from voice_assistant.config import SAMPLERATE
 
 _recognizer = sr.Recognizer()
 
 
 def transcribe_audio(audio_data: np.ndarray) -> str | None:
-    """The SINGLE public function of this module.
-    
-    Sends raw audio array to Google STT.
+    """Отправляет аудио в Google STT и возвращает распознанный текст.
+
+    Args:
+        audio_data: Numpy-массив аудио (int16, 16 kHz, mono).
+
+    Returns:
+        Текст в нижнем регистре или None при ошибке.
     """
     try:
         wav_bytes = _to_wav_bytes(audio_data)
@@ -29,7 +35,7 @@ def transcribe_audio(audio_data: np.ndarray) -> str | None:
 
 
 def _to_wav_bytes(audio_data: np.ndarray) -> bytes:
-    """Convert numpy array into standard wave file bytes."""
+    """Конвертирует numpy-массив в WAV-байты."""
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wf:
         wf.setnchannels(1)

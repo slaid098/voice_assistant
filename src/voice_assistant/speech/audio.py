@@ -1,17 +1,17 @@
 import numpy as np
 import sounddevice as sd
 
-from src.config import CHUNK_MS, SAMPLERATE
+from voice_assistant.config import CHUNK_MS, SAMPLERATE
 
 _VAD_THRESHOLD = 200.0
-_SILENCE_LIMIT_MS = 1800  # 1.8 seconds of silence to safely accommodate slower speech
+_SILENCE_LIMIT_MS = 1800
 _RMS_EPSILON = 1e-9
 
 
 def record_user_speech(timeout_ms: int = 6000) -> np.ndarray | None:
-    """Record microphone input until 1.8 seconds of silence.
+    """Записывает речь с микрофона до 1.8 секунд тишины.
 
-    If no active speech is detected within timeout_ms, returns None (silent timeout).
+    Если речь не началась в течение timeout_ms — возвращает None.
     """
     chunk_size = int(CHUNK_MS * SAMPLERATE / 1000)
     buffer = []
@@ -27,7 +27,6 @@ def record_user_speech(timeout_ms: int = 6000) -> np.ndarray | None:
 
             is_voice_detected = _is_voice(chunk)
 
-            # Start accumulating once we hear any speech, or keep listening for a start
             if is_voice_detected:
                 active_speech_started = True
                 silence_ms = 0
@@ -48,7 +47,7 @@ def record_user_speech(timeout_ms: int = 6000) -> np.ndarray | None:
 
 
 def _rms(samples: np.ndarray) -> float:
-    """Calculate true AC RMS by subtracting the DC Offset."""
+    """Вычисляет AC RMS (вычитая DC Offset)."""
     samples_clean = samples.astype(np.float64)
     if samples_clean.size == 0:
         return 0.0
@@ -59,5 +58,5 @@ def _rms(samples: np.ndarray) -> float:
 
 
 def _is_voice(chunk: np.ndarray) -> bool:
-    """Check if the chunk has active voice above threshold."""
+    """Проверяет, есть ли голос выше порога."""
     return _rms(chunk) > _VAD_THRESHOLD

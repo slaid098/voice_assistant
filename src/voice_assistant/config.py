@@ -8,6 +8,11 @@ load_dotenv()
 SAMPLERATE = 16000
 CHUNK_MS = 100
 
+WAKE_WORD: str = os.getenv("WAKE_WORD", "вики").strip().lower()
+WAKE_THRESHOLD: int = int(os.getenv("WAKE_THRESHOLD", "70"))
+WAKE_TIMEOUT_MS: int = int(os.getenv("WAKE_TIMEOUT_MS", "3000"))
+COMMAND_TIMEOUT_MS: int = int(os.getenv("COMMAND_TIMEOUT_MS", "6000"))
+
 Intents = partial(
     dict,
     YOUTUBE_SEARCH="youtube_search",
@@ -24,12 +29,16 @@ Intents = partial(
 )
 INTENTS = Intents()
 
-WAKE_WORDS: list[str] = [
+WAKE_ALIASES: list[str] = [
     "вики",
     "wiki",
     "вика",
     "ники",
     "мики",
+    "фрики",
+    "вику",
+    "вике",
+    "викки",
 ]
 
 JUNK_WORDS: list[str] = [
@@ -126,6 +135,6 @@ INTENT_RULES: list[dict] = [
 ]
 
 CITY: str = "Гомель"
-WEATHER_DEFAULT_CITY: str = "Костюковка, Гомель"
+WEATHER_DEFAULT_CITY: str = os.getenv("WEATHER_DEFAULT_CITY", "Костюковка, Гомель").strip()
 OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "").strip()
-YOUTUBE_SEARCH_LIMIT: int = 10
+YOUTUBE_SEARCH_LIMIT: int = int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10"))

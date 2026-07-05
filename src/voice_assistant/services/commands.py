@@ -1,11 +1,11 @@
 import threading
 from datetime import datetime
 
-from src.tts import speak
+from voice_assistant.speech.tts import speak
 
 
 def handle_simple_command(intent_name: str, payload: str | None) -> None:
-    """Routes simple commands to their respective text generators/runners."""
+    """Маршрутизирует простые команды к их обработчикам."""
     if intent_name == "time":
         speak(_get_time_text())
 
@@ -13,19 +13,19 @@ def handle_simple_command(intent_name: str, payload: str | None) -> None:
         _handle_timer(payload)
 
     elif intent_name == "help":
-        _HELP_TEXT = (
+        _help_text = (
             "Вот что я умею. "
-            "Скажите Вики ютуб и запрос — я найду видео. "
-            "Скажите Вики погода — расскажу погоду. "
-            "Скажите Вики время — скажу текущее время. "
-            "Скажите Вики таймер — поставлю таймер. "
-            "Скажите Вики помощь — повторю команды."
+            "Скажите ютуб и запрос — я найду видео. "
+            "Скажите погода — расскажу погоду. "
+            "Скажите время — скажу текущее время. "
+            "Скажите таймер — поставлю таймер. "
+            "Скажите помощь — повторю команды."
         )
-        speak(_HELP_TEXT)
+        speak(_help_text)
 
 
 def _get_time_text() -> str:
-    """Generate datetime text."""
+    """Возвращает текущую дату и время."""
     now = datetime.now()
     date_str = now.strftime("%d.%m.%Y")
     time_str = now.strftime("%H:%M")
@@ -33,7 +33,7 @@ def _get_time_text() -> str:
 
 
 def _handle_timer(payload: str | None) -> None:
-    """Validate timer request, spawn alarm thread."""
+    """Ставит таймер (daemon thread)."""
     if not payload:
         speak("Укажите время для таймера. Например: таймер пять минут.")
         return
@@ -55,8 +55,9 @@ def _handle_timer(payload: str | None) -> None:
 
 
 def _parse_timer_seconds(payload: str) -> int | None:
-    """Extract timer seconds from string."""
+    """Извлекает секунды из строки таймера."""
     import re
+
     numbers = re.findall(r"\d+", payload)
     if not numbers:
         return None
@@ -74,7 +75,7 @@ def _parse_timer_seconds(payload: str) -> int | None:
 
 
 def _format_timer_display(total_seconds: int) -> str:
-    """Humanize seconds into Russian words."""
+    """Превращает секунды в человекочитаемый текст."""
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
@@ -90,6 +91,7 @@ def _format_timer_display(total_seconds: int) -> str:
 
 
 def _plural(n: int, forms: tuple[str, str, str]) -> str:
+    """Выбирает правильную форму слова по числу."""
     n = abs(n)
     if 11 <= n % 100 <= 14:
         return forms[2]

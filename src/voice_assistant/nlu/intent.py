@@ -2,11 +2,18 @@ import re
 
 from thefuzz import fuzz
 
-from src.config import INTENT_RULES, JUNK_WORDS, WAKE_WORDS
+from voice_assistant.config import INTENT_RULES, JUNK_WORDS, WAKE_ALIASES
 
 
 def parse_voice_intent(text: str) -> dict | None:
-    """Parse fuzzy voice command into structured intent."""
+    """Разбирает голосовую команду в структурированный интент.
+
+    Args:
+        text: Распознанный текст команды.
+
+    Returns:
+        Словарь {intent, payload, confidence} или None.
+    """
     if not text:
         return None
 
@@ -19,7 +26,6 @@ def parse_voice_intent(text: str) -> dict | None:
     best_score = 0
 
     for rule in INTENT_RULES:
-        # We fuzzy match with each keyword in the intent rules
         for keyword in rule["keywords"]:
             if keyword in cleaned_text:
                 score = 100
@@ -45,13 +51,13 @@ def parse_voice_intent(text: str) -> dict | None:
 
 
 def _strip_wake_word(text: str) -> str:
-    """Strip wake words and junk words from the text."""
+    """Удаляет wake-слова и мусорные слова из текста."""
     words = text.lower().strip().split()
     cleaned_words = []
 
     for word in words:
         clean_word = re.sub(r"[^\w\sА-Яа-яЁё]", "", word)
-        if clean_word in WAKE_WORDS or clean_word in JUNK_WORDS:
+        if clean_word in WAKE_ALIASES or clean_word in JUNK_WORDS:
             continue
         cleaned_words.append(word)
 
@@ -59,7 +65,7 @@ def _strip_wake_word(text: str) -> str:
 
 
 def _extract_payload(text: str, trigger: str, rule: dict) -> str | None:
-    """Remove matched trigger keyword and return payload text."""
+    """Удаляет триггер-слово и возвращает payload."""
     if not rule["has_payload"]:
         return None
 
@@ -94,7 +100,7 @@ def _extract_payload(text: str, trigger: str, rule: dict) -> str | None:
 
 
 def _normalize_command_text(text: str) -> str:
-    """Normalize common ASR latin aliases for stable intent matching."""
+    """Нормализует латинские алиасы для стабильного матчинга интентов."""
     normalized = text.lower()
     aliases = {
         "youtube": "ютуб",

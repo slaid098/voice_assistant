@@ -10,7 +10,10 @@ from loguru import logger
 
 
 def speak(text: str) -> None:
-    """Convert text to speech and play it synchronously."""
+    """Озвучивает текст через gTTS и воспроизводит через pygame.
+
+    Блокирующая — ждёт окончания воспроизведения.
+    """
     _ensure_mixer()
 
     try:
@@ -26,14 +29,14 @@ def speak(text: str) -> None:
 
 
 def _ensure_mixer() -> None:
-    """Initialize pygame mixer once."""
+    """Инициализирует pygame mixer один раз."""
     if pygame.mixer.get_init() is not None:
         return
     pygame.mixer.init(frequency=24000, size=-16, channels=1)
 
 
 def _play_file(path: str) -> None:
-    """Blocks until sound finishes playing."""
+    """Воспроизводит аудиофайл (блокирующе)."""
     try:
         sound = pygame.mixer.Sound(path)
         sound.play()
@@ -45,7 +48,7 @@ def _play_file(path: str) -> None:
 
 @contextmanager
 def _temp_mp3_path(mp3_bytes: io.BytesIO) -> Generator[str]:
-    """Manage creation and disposal of temporary files."""
+    """Создаёт временный MP3-файл и удаляет его после использования."""
     temp_path = ""
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
