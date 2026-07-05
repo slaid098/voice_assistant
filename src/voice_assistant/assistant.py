@@ -89,7 +89,7 @@ def _listen_text_or_none(timeout_ms: int, stage: str, *, play_beep: bool = True)
         return None
 
     if text:
-        logger.info(f"[recognized:{stage}] {text}")
+        logger.info(f"[распознано:{stage}] {text}")
     return text
 
 

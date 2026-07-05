@@ -23,9 +23,9 @@ def _crash_handler(
     exc_tb: TracebackType | None,
 ) -> None:
     """Обрабатывает критические ошибки — озвучивает и завершает работу."""
-    logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
+    logger.critical("Необработанное исключение", exc_info=(exc_type, exc_value, exc_tb))
     print(f"\n{'=' * 60}", file=sys.stderr)
-    print("CRITICAL: Голосовой помощник аварийно завершил работу.", file=sys.stderr)
+    print("КРИТИЧЕСКАЯ ОШИБКА: Голосовой помощник аварийно завершил работу.", file=sys.stderr)
     print("".join(traceback.format_exception(exc_type, exc_value, exc_tb)), file=sys.stderr)
     print(f"{'=' * 60}", file=sys.stderr)
 
@@ -33,7 +33,7 @@ def _crash_handler(
         make_sound(Sound.DONE)
         speak_with_fallback("Произошла критическая ошибка. Программа завершит работу.")
     except Exception:
-        logger.warning("Failed to speak crash message")
+        logger.warning("Не удалось озвучить сообщение о сбое")
 
     timer = threading.Timer(10.0, lambda: sys.exit(1))
     timer.daemon = True
@@ -63,4 +63,4 @@ def main() -> None:
                 make_sound(Sound.DONE)
                 speak_with_fallback("Произошла ошибка. Повторите команду.")
             except Exception:
-                logger.warning("Failed to speak error message")
+                logger.warning("Не удалось озвучить сообщение об ошибке")

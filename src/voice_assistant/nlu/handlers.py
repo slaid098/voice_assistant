@@ -85,5 +85,5 @@ def execute_intent(intent_name: str, payload: str | None, *, listen: ListenFn) -
 
 
 def logger_unknown_intent(intent_name: str) -> None:
-    logger.warning(f"Unknown intent: {intent_name}")
+    logger.warning(f"Неизвестный интент: {intent_name}")
     speak("Я не знаю такую команду.")

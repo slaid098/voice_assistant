@@ -35,10 +35,12 @@ def transcribe_audio(audio_data: np.ndarray) -> str | None:
     except sr.UnknownValueError:
         return None
     except sr.RequestError as ex:
-        logger.bind(error=ex).warning("STT: ошибка сети или таймаут")
+        logger.bind(error=ex).warning("Распознавание речи: ошибка сети или таймаут")
         raise STTNetworkError("Нет связи с сервером распознавания") from ex
     except Exception as ex:
-        logger.bind(error=ex, error_type=type(ex).__name__).error("STT: неожиданная ошибка")
+        logger.bind(error=ex, error_type=type(ex).__name__).error(
+            "Распознавание речи: неожиданная ошибка"
+        )
         return None
 
 

@@ -74,7 +74,7 @@ def _load_settings() -> Settings:
         silence_limit_ms=1800,
         youtube_search_limit=int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10")),
         openweather_api_key=os.getenv("OPENWEATHER_API_KEY", "").strip(),
-        weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Гомель").strip(),
+        weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Костюковка").strip(),
         wake_aliases=wake_aliases,
         junk_words=[
             "пожалуйста",
