@@ -1,5 +1,6 @@
 from loguru import logger
 
+from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import settings
 from voice_assistant.services.browser import open_browser_url
 from voice_assistant.services.youtube import search_youtube_videos
@@ -31,6 +32,7 @@ def run_youtube_flow(
         return
 
     speak("Ищу.")
+    make_sound(Sound.SEARCH_STARTED)
     videos = search_youtube_videos(query)
     if not videos:
         speak("Ничего не найдено.")

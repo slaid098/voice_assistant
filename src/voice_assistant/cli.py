@@ -4,6 +4,7 @@ from datetime import datetime
 
 from loguru import logger
 
+from voice_assistant.audio.sounds import Sound, init_sounds, make_sound
 from voice_assistant.assistant import run_assistant_step
 
 
@@ -26,6 +27,9 @@ def _crash_handler(exc_type, exc_value, exc_tb) -> None:
 def main() -> None:
     setup_logging()
     sys.excepthook = _crash_handler
+
+    init_sounds()
+    make_sound(Sound.STARTUP)
 
     print("=== Голосовой помощник запущен ===")
     while True:

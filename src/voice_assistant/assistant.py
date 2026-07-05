@@ -1,5 +1,6 @@
 from loguru import logger
 
+from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import settings
 from voice_assistant.nlu.handlers import execute_intent
 from voice_assistant.nlu.intent import parse_voice_intent
@@ -23,6 +24,7 @@ def run_assistant_step() -> None:
     if not is_wake_word(activation_text):
         return
 
+    make_sound(Sound.READY_TO_LISTEN)
     speak("Слушаю.")
     intent = _listen_intent_after_activation()
     if intent is None:
@@ -46,11 +48,13 @@ def _listen_intent_after_activation() -> dict | None:
         if intent:
             return intent
 
+        make_sound(Sound.DONE)
         speak("Я вас не поняла, повторите.")
 
 
 def _listen_text_or_none(timeout_ms: int, stage: str) -> str | None:
     """Слушает микрофон и возвращает распознанный текст."""
+    make_sound(Sound.READY_TO_LISTEN)
     audio = record_user_speech(timeout_ms=timeout_ms)
     if audio is None:
         return None
@@ -74,4 +78,5 @@ def _record_and_transcribe_with_retries(stage: str, prompt: str | None = None) -
         if text:
             return text
 
+        make_sound(Sound.DONE)
         speak("Я вас не поняла, повторите.")
