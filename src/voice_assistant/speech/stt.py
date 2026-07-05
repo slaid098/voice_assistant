@@ -9,7 +9,9 @@ from loguru import logger
 
 from voice_assistant.config import settings
 from voice_assistant.speech.providers.stt.base import STTProvider
-from voice_assistant.speech.providers.stt.google_stt import STTNetworkError as STTNetworkError
+from voice_assistant.speech.providers.stt.google_stt import (
+    STTNetworkError as STTNetworkError,  # noqa: PLC0414
+)
 from voice_assistant.speech.providers.stt.google_stt import google_stt
 from voice_assistant.speech.providers.stt.vosk_stt import vosk_stt
 
