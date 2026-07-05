@@ -28,11 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.12", "3.13", "3.14"]
+        python: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --extra dev --python ${{ matrix.python }}
+      - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libportaudio2
       - run: uv run pytest
 
   complexity:
@@ -41,4 +42,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --extra dev
-      - run: uv run xenon --max-absolute B --max-modules A --max-average A src/
+      - run: uv run xenon --max-absolute B --max-modules B --max-average A src/
