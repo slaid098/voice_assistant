@@ -155,9 +155,10 @@ def test_vosk_detector_detects_wake_word(monkeypatch):
         "FakeRecognizer",
         (),
         {
-            "accept_waveform": lambda self, data: 1,
-            "result": lambda self: json.dumps({"text": "вики"}),
-            "partial_result": lambda self: json.dumps({"partial": ""}),
+            "AcceptWaveform": lambda self, data: 1,
+            "Result": lambda self: json.dumps({"text": "вики"}),
+            "PartialResult": lambda self: json.dumps({"partial": ""}),
+            "Reset": lambda self: None,
         },
     )()
 
@@ -181,9 +182,10 @@ def test_vosk_detector_ignores_unk(monkeypatch):
         "FakeRecognizer",
         (),
         {
-            "accept_waveform": lambda self, data: 1,
-            "result": lambda self: json.dumps({"text": "[unk]"}),
-            "partial_result": lambda self: json.dumps({"partial": ""}),
+            "AcceptWaveform": lambda self, data: 1,
+            "Result": lambda self: json.dumps({"text": "[unk]"}),
+            "PartialResult": lambda self: json.dumps({"partial": ""}),
+            "Reset": lambda self: None,
         },
     )()
 

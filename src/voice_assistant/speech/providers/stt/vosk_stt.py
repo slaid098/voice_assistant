@@ -1,6 +1,4 @@
-import io
 import json
-import wave
 from importlib.resources import files
 from pathlib import Path
 from typing import Protocol, cast
@@ -14,13 +12,15 @@ _MODEL_DIR: Path = Path(str(files("voice_assistant") / "assets" / "models" / "vo
 
 
 class VoskRecognizerProtocol(Protocol):
-    """Скрытый тип KaldiRecognizer из vosk."""
+    """Скрытый тип KaldiRecognizer из vosk (CamelCase API)."""
 
-    def accept_waveform(self, data: bytes) -> int: ...
+    def AcceptWaveform(self, data: bytes) -> int: ...
 
-    def partial_result(self) -> str: ...
+    def PartialResult(self) -> str: ...
 
-    def result(self) -> str: ...
+    def Result(self) -> str: ...
+
+    def Reset(self) -> None: ...
 
 
 class _ModelState:
@@ -115,17 +115,17 @@ class VoskSTTProvider:
         if recognizer is None:
             raise RuntimeError("Vosk model not loaded")
 
-        wav_bytes = _to_wav_bytes(audio)
+        raw_pcm = audio.tobytes()
 
         chunk_size = 4000
         text = ""
-        for i in range(0, len(wav_bytes), chunk_size):
-            chunk = wav_bytes[i : i + chunk_size]
-            if recognizer.accept_waveform(chunk):
-                result = json.loads(recognizer.result())
+        for i in range(0, len(raw_pcm), chunk_size):
+            chunk = raw_pcm[i : i + chunk_size]
+            if recognizer.AcceptWaveform(chunk):
+                result = json.loads(recognizer.Result())
                 text += result.get("text", "")
 
-        result = json.loads(recognizer.result())
+        result = json.loads(recognizer.Result())
         text += result.get("text", "")
 
         text = text.strip().lower()
@@ -134,18 +134,6 @@ class VoskSTTProvider:
     def is_available(self) -> bool:
         """Проверяет, загружена ли модель Vosk."""
         return _state.get() is not None
-
-
-def _to_wav_bytes(audio_data: np.ndarray) -> bytes:
-    """Конвертирует numpy-массив в WAV-байты."""
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(settings.samplerate)
-        wf.writeframes(audio_data.tobytes())
-    buf.seek(0)
-    return buf.read()
 
 
 vosk_stt = VoskSTTProvider()

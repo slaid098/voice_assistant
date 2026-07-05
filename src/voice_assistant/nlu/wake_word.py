@@ -19,13 +19,15 @@ from voice_assistant.config import settings
 
 
 class VoskRecognizerProtocol(Protocol):
-    """Скрытый тип KaldiRecognizer из vosk."""
+    """Скрытый тип KaldiRecognizer из vosk (CamelCase API)."""
 
-    def accept_waveform(self, data: bytes) -> int: ...
+    def AcceptWaveform(self, data: bytes) -> int: ...
 
-    def partial_result(self) -> str: ...
+    def PartialResult(self) -> str: ...
 
-    def result(self) -> str: ...
+    def Result(self) -> str: ...
+
+    def Reset(self) -> None: ...
 
 
 class WakeWordDetector(Protocol):
@@ -154,18 +156,23 @@ class VoskWakeWordDetector:
             return None
 
         raw_bytes = chunk.tobytes()
-        if recognizer.accept_waveform(raw_bytes):
-            result = json.loads(recognizer.result())
+        if recognizer.AcceptWaveform(raw_bytes):
+            result = json.loads(recognizer.Result())
             text = result.get("text", "").strip().lower()
             return _check_wake_word_fuzzy(text)
 
-        partial = json.loads(recognizer.partial_result())
+        partial = json.loads(recognizer.PartialResult())
         text = partial.get("partial", "").strip().lower()
         return _check_wake_word_fuzzy(text)
 
     def is_available(self) -> bool:
         """Проверяет, загружена ли модель Vosk."""
         return self._ensure_loaded() is not None
+
+    def reset(self) -> None:
+        """Сбрасывает распознаватель между сессиями (как в прототипе)."""
+        if self._recognizer is not None:
+            self._recognizer.Reset()
 
 
 def _build_grammar() -> str:
