@@ -1,7 +1,9 @@
+from typing import Any
+
 import requests
 from loguru import logger
 
-from src.config import OPENWEATHER_API_KEY, WEATHER_DEFAULT_CITY
+from voice_assistant.config import settings
 
 _GEOCODE_URL = "http://api.openweathermap.org/geo/1.0/direct"
 _WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
@@ -15,12 +17,11 @@ def get_weather_text(city: str | None = None) -> str:
 
     Returns:
         Готовый текст прогноза для TTS.
-
     """
-    if not OPENWEATHER_API_KEY:
+    if not settings.openweather_api_key:
         return "Не настроен ключ погоды. Добавьте OPENWEATHER_API_KEY в файл .env."
 
-    target = _normalize_city_query(city or WEATHER_DEFAULT_CITY)
+    target = city or settings.weather_default_city
     try:
         place = _resolve_city(target)
         if place is None:
@@ -33,17 +34,9 @@ def get_weather_text(city: str | None = None) -> str:
         return _format_weather(weather, place["name"])
 
 
-def _resolve_city(query: str) -> dict | None:
-    """Найти координаты города через OpenWeather Geocoding API.
-
-    Args:
-        query: Текст города.
-
-    Returns:
-        Словарь c именем и координатами или None.
-
-    """
-    params = {"q": query, "limit": 1, "appid": OPENWEATHER_API_KEY}
+def _resolve_city(query: str) -> dict[str, Any] | None:
+    """Найти координаты города через OpenWeather Geocoding API."""
+    params: dict[str, str | int] = {"q": query, "limit": 1, "appid": settings.openweather_api_key}
     response = requests.get(_GEOCODE_URL, params=params, timeout=10)
     response.raise_for_status()
     items = response.json()
@@ -63,59 +56,22 @@ def _resolve_city(query: str) -> dict | None:
     return {"name": pretty_name, "lat": item["lat"], "lon": item["lon"]}
 
 
-def _normalize_city_query(query: str) -> str:
-    """Нормализовать частые разговорные формы названий городов.
-
-    Args:
-        query: Сырый город из команды.
-
-    Returns:
-        Нормализованный текст города.
-
-    """
-    lowered = query.lower().strip()
-    aliases = {
-        "костюковке": "Костюковка, Гомель",
-        "костюковка": "Костюковка, Гомель",
-        "гомель костюковка": "Костюковка, Гомель",
-    }
-    return aliases.get(lowered, query)
-
-
-def _fetch_weather(lat: float, lon: float) -> dict:
-    """Получить текущую погоду по координатам.
-
-    Args:
-        lat: Широта.
-        lon: Долгота.
-
-    Returns:
-        JSON c текущей погодой.
-
-    """
-    params = {
+def _fetch_weather(lat: float, lon: float) -> dict[str, Any]:
+    """Получить текущую погоду по координатам."""
+    params: dict[str, str | float] = {
         "lat": lat,
         "lon": lon,
-        "appid": OPENWEATHER_API_KEY,
+        "appid": settings.openweather_api_key,
         "units": "metric",
         "lang": "ru",
     }
     response = requests.get(_WEATHER_URL, params=params, timeout=10)
     response.raise_for_status()
-    return response.json()
+    return dict(response.json())
 
 
-def _format_weather(data: dict, city: str) -> str:
-    """Собрать естественный текст погоды для озвучки.
-
-    Args:
-        data: Ответ OpenWeather.
-        city: Читаемое имя населенного пункта.
-
-    Returns:
-        Текст погоды для TTS.
-
-    """
+def _format_weather(data: dict[str, Any], city: str) -> str:
+    """Собрать естественный текст погоды для озвучки."""
     try:
         temp = round(float(data["main"]["temp"]))
         feels_like = round(float(data["main"]["feels_like"]))
@@ -129,10 +85,8 @@ def _format_weather(data: dict, city: str) -> str:
         )
         return "Не удалось обработать данные о погоде."
     else:
-        result = (
+        return (
             f"Сейчас в {city} {temp} градусов, {description}. "
             f"Ощущается как {feels_like}. "
             f"Ветер {wind} метров в секунду, влажность {humidity} процентов."
         )
-        print(result)
-        return result.lower().replace("homyel region", "").replace("by", "").replace("костюковка", "костюковке")

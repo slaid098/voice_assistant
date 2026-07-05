@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --extra dev
+
+      - name: Download Piper voice model
+        shell: pwsh
+        run: |
+          $base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium"
+          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile src/voice_assistant/assets/voices/ru_RU-irina-medium.onnx
+          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile src/voice_assistant/assets/voices/ru_RU-irina-medium.onnx.json
+
+      - name: Build with PyInstaller
+        shell: pwsh
+        run: |
+          uv run pyinstaller --noconfirm --onefile `
+            --name voice-assistant `
+            --collect-data voice_assistant `
+            --collect-data piper_phonemize `
+            src/voice_assistant/__main__.py
+
+      - name: Package release
+        shell: pwsh
+        run: |
+          Copy-Item .env.template dist/.env
+          Copy-Item README.md dist/
+          Compress-Archive -Path dist/voice-assistant.exe,dist/.env,dist/README.md `
+            -DestinationPath dist/voice-assistant.zip
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/voice-assistant.zip
