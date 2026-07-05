@@ -29,6 +29,17 @@ def _dummy_audio(monkeypatch: pytest.MonkeyPatch) -> None:
     pygame.mixer.init(frequency=24000, size=-16, channels=1)
 
 
+@pytest.fixture(autouse=True)
+def _force_fuzzy_wake_word(monkeypatch: pytest.MonkeyPatch) -> None:
+    """По умолчанию fuzzy wake word для тестов (нет модели Vosk в CI).
+
+    Vosk-специфичные тесты переопределяют active_wake_word_detector явно.
+    """
+    import voice_assistant.assistant as a_mod
+
+    monkeypatch.setattr(a_mod, "active_wake_word_detector", lambda: None)
+
+
 @pytest.fixture
 def mock_speak(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Mock TTS speak to avoid audio device and network."""

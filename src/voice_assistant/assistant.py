@@ -52,6 +52,9 @@ def _listen_for_wake_word_streaming(detector: Any) -> str | None:
     """
     detected: list[str | None] = [None]
 
+    if hasattr(detector, "reset"):
+        detector.reset()
+
     def on_chunk(chunk: Any) -> None:
         word = detector.detect_chunk(chunk)
         if word is not None:
