@@ -3,35 +3,25 @@ import re
 import threading
 from datetime import datetime
 
-from loguru import logger
-
 from voice_assistant.speech.tts import speak
 
 _speech_queue: queue.Queue[str] = queue.Queue()
 
 
 class _TimerState:
-    """Управляет активным таймером."""
+    """Управляет активным таймером. Новый таймер перезаписывает старый."""
 
     def __init__(self) -> None:
         self._active_timer: threading.Timer | None = None
 
     def set(self, timer: threading.Timer) -> None:
         """Устанавливает новый таймер, отменяя предыдущий."""
-        self.cancel()
+        if self._active_timer is not None:
+            self._active_timer.cancel()
         self._active_timer = timer
 
-    def cancel(self) -> bool:
-        """Отменяет активный таймер. Возвращает True, если был активный."""
-        if self._active_timer is None:
-            return False
-        self._active_timer.cancel()
-        self._active_timer = None
-        logger.info("Активный таймер отменён")
-        return True
-
     def clear(self) -> None:
-        """Очищает ссылку (после срабатывания)."""
+        """Очищает ссылку (после естественного срабатывания)."""
         self._active_timer = None
 
 
@@ -48,11 +38,6 @@ def drain_speech_queue() -> None:
         speak(text)
 
 
-def cancel_timer() -> None:
-    """Отменяет активный таймер (если есть)."""
-    _timer_state.cancel()
-
-
 def handle_simple_command(intent_name: str, payload: str | None) -> None:
     """Маршрутизирует простые команды к их обработчикам."""
     if intent_name == "time":
@@ -65,16 +50,13 @@ def handle_simple_command(intent_name: str, payload: str | None) -> None:
         _help_text = (
             "Вот что я умею. "
             "Скажите ютуб и запрос — я найду видео. "
+            "Во время поиска скажите стоп — отменю поиск. "
             "Скажите погода — расскажу погоду. "
             "Скажите время — скажу текущее время. "
             "Скажите таймер — поставлю таймер. "
-            "Скажите название — скажу, что сейчас играет. "
-            "Скажите стоп — отменю таймер."
+            "Скажите название — скажу, что сейчас играет."
         )
         speak(_help_text)
-
-    elif intent_name == "stop":
-        cancel_timer()
 
 
 def _get_time_text() -> str:
