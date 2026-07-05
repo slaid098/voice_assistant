@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 from loguru import logger
 
@@ -32,9 +34,9 @@ def get_weather_text(city: str | None = None) -> str:
         return _format_weather(weather, place["name"])
 
 
-def _resolve_city(query: str) -> dict | None:
+def _resolve_city(query: str) -> dict[str, Any] | None:
     """Найти координаты города через OpenWeather Geocoding API."""
-    params = {"q": query, "limit": 1, "appid": settings.openweather_api_key}
+    params: dict[str, str | int] = {"q": query, "limit": 1, "appid": settings.openweather_api_key}
     response = requests.get(_GEOCODE_URL, params=params, timeout=10)
     response.raise_for_status()
     items = response.json()
@@ -54,9 +56,9 @@ def _resolve_city(query: str) -> dict | None:
     return {"name": pretty_name, "lat": item["lat"], "lon": item["lon"]}
 
 
-def _fetch_weather(lat: float, lon: float) -> dict:
+def _fetch_weather(lat: float, lon: float) -> dict[str, Any]:
     """Получить текущую погоду по координатам."""
-    params = {
+    params: dict[str, str | float] = {
         "lat": lat,
         "lon": lon,
         "appid": settings.openweather_api_key,
@@ -65,10 +67,10 @@ def _fetch_weather(lat: float, lon: float) -> dict:
     }
     response = requests.get(_WEATHER_URL, params=params, timeout=10)
     response.raise_for_status()
-    return response.json()
+    return dict(response.json())
 
 
-def _format_weather(data: dict, city: str) -> str:
+def _format_weather(data: dict[str, Any], city: str) -> str:
     """Собрать естественный текст погоды для озвучки."""
     try:
         temp = round(float(data["main"]["temp"]))

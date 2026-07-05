@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --extra dev
+
+      - name: Build with PyInstaller
+        shell: pwsh
+        run: |
+          uv run pyinstaller --noconfirm --onefile `
+            --name voice-assistant `
+            --collect-data voice_assistant `
+            src/voice_assistant/__main__.py
+
+      - name: Package release
+        shell: pwsh
+        run: |
+          Copy-Item .env.template dist/.env
+          Copy-Item README.md dist/
+          Compress-Archive -Path dist/voice-assistant.exe,dist/.env,dist/README.md `
+            -DestinationPath dist/voice-assistant.zip
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/voice-assistant.zip

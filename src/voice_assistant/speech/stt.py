@@ -23,7 +23,7 @@ def transcribe_audio(audio_data: np.ndarray) -> str | None:
         wav_bytes = _to_wav_bytes(audio_data)
         audio_item = sr.AudioData(wav_bytes, settings.samplerate, 2)
         text = _recognizer.recognize_google(audio_item, language="ru-RU")
-        return text.lower().strip()
+        return str(text.lower().strip())
     except sr.UnknownValueError:
         return None
     except sr.RequestError as ex:

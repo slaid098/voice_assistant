@@ -1,3 +1,5 @@
+from typing import Any
+
 from loguru import logger
 
 from voice_assistant.audio.sounds import Sound, make_sound
@@ -16,9 +18,7 @@ def run_assistant_step() -> None:
     drain_speech_queue()
 
     print("\n--- Ожидание активации... ---")
-    activation_text = _listen_text_or_none(
-        timeout_ms=settings.wake_timeout_ms, stage="activation"
-    )
+    activation_text = _listen_text_or_none(timeout_ms=settings.wake_timeout_ms, stage="activation")
     if not activation_text:
         return
     if not is_wake_word(activation_text):
@@ -37,7 +37,7 @@ def run_assistant_step() -> None:
     )
 
 
-def _listen_intent_after_activation() -> dict | None:
+def _listen_intent_after_activation() -> dict[str, Any] | None:
     """Слушает команды после активации, пока не получит валидный интент."""
     while True:
         command_text = _record_and_transcribe_with_retries(stage="command")

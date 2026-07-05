@@ -2,13 +2,14 @@ from collections.abc import Callable
 from enum import IntEnum
 from importlib.resources import files
 from pathlib import Path
+from typing import Any
 
 import pygame
 from loguru import logger
 
 from voice_assistant.speech.tts import _ensure_mixer, speak
 
-_SOUND_DIR: Path = files("voice_assistant") / "assets" / "sounds"
+_SOUND_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds"))
 _sounds: dict[int, pygame.mixer.Sound] = {}
 
 
@@ -16,9 +17,9 @@ class Sound(IntEnum):
     """Звуковые ярлыки (earcons) для accessibility."""
 
     READY_TO_LISTEN = 1  # бип «говори» — перед каждой записью
-    SEARCH_STARTED = 2   # чайм «поиск пошёл» — YouTube запрос принят
-    STARTUP = 3          # фанфара «я проснулась» — один раз при старте
-    DONE = 4             # финал «действие завершено / ошибка»
+    SEARCH_STARTED = 2  # чайм «поиск пошёл» — YouTube запрос принят
+    STARTUP = 3  # фанфара «я проснулась» — один раз при старте
+    DONE = 4  # финал «действие завершено / ошибка»
 
 
 def init_sounds() -> None:
@@ -50,15 +51,17 @@ def make_sound(sound: Sound) -> None:
         logger.bind(error=ex).warning(f"Не удалось воспроизвести звук {sound.value}")
 
 
-def with_sound_effects(say_done: bool = False) -> Callable:
+def with_sound_effects(
+    say_done: bool = False,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор: бип(READY_TO_LISTEN) до → функция → финал(DONE) после.
 
     Args:
         say_done: Произнести «Сделано» между функцией и финальным звуком.
     """
 
-    def decorator(func: Callable) -> Callable:
-        def wrapper(*args, **kwargs) -> object:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             make_sound(Sound.READY_TO_LISTEN)
             result = func(*args, **kwargs)
             if say_done:

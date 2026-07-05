@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing import Protocol
 
+from loguru import logger
+
 from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import Intent
 from voice_assistant.services.browser import get_current_title
@@ -82,7 +84,5 @@ def execute_intent(intent_name: str, payload: str | None, *, listen: ListenFn) -
 
 
 def logger_unknown_intent(intent_name: str) -> None:
-    from loguru import logger
-
     logger.warning(f"Unknown intent: {intent_name}")
     speak("Я не знаю такую команду.")

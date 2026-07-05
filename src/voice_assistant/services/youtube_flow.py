@@ -1,10 +1,14 @@
-from loguru import logger
+from collections.abc import Callable
+from typing import Any
+
+from num2words import num2words
 
 from voice_assistant.audio.sounds import Sound, make_sound
-from voice_assistant.config import settings
 from voice_assistant.services.browser import open_browser_url
 from voice_assistant.services.youtube import search_youtube_videos
 from voice_assistant.speech.tts import speak
+
+ListenFn = Callable[..., str | None]
 
 _PAGINATION_WORDS: dict[str, set[str]] = {
     "play": {"включить", "включай", "давай", "это", "запусти", "давай это"},
@@ -17,7 +21,7 @@ _PAGINATION_WORDS: dict[str, set[str]] = {
 def run_youtube_flow(
     initial_query: str | None,
     *,
-    listen: object,
+    listen: ListenFn,
 ) -> None:
     """Ведёт пользователя по сценарию поиска и выбора YouTube-видео.
 
@@ -42,10 +46,10 @@ def run_youtube_flow(
 
 
 def _run_pagination(
-    videos: list[dict],
+    videos: list[dict[str, Any]],
     query: str,
     *,
-    listen: object,
+    listen: ListenFn,
 ) -> None:
     """Озвучивает результаты YouTube и обрабатывает команды навигации."""
     index = 0
@@ -73,8 +77,6 @@ def _run_pagination(
 
 def _build_video_prompt(query: str, title: str, index: int) -> str:
     """Формирует озвучку карточки видео."""
-    from num2words import num2words
-
     num_word = num2words(index + 1, lang="ru")
     if index == 0:
         return (

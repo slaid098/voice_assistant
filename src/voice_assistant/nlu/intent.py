@@ -1,11 +1,12 @@
 import re
+from typing import Any
 
 from thefuzz import fuzz
 
 from voice_assistant.config import IntentRule, settings
 
 
-def parse_voice_intent(text: str) -> dict | None:
+def parse_voice_intent(text: str) -> dict[str, Any] | None:
     """Разбирает голосовую команду в структурированный интент.
 
     Args:

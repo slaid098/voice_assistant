@@ -1,4 +1,5 @@
 import queue
+import re
 import threading
 from datetime import datetime
 
@@ -70,8 +71,6 @@ def _handle_timer(payload: str | None) -> None:
 
 def _parse_timer_seconds(payload: str) -> int | None:
     """Извлекает секунды из строки таймера."""
-    import re
-
     numbers = re.findall(r"\d+", payload)
     if not numbers:
         return None

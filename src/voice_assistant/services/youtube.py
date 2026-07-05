@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from yt_dlp import YoutubeDL
 
@@ -7,7 +8,7 @@ from voice_assistant.config import settings
 _YTDL_OPTS = {"extract_flat": True, "quiet": True, "no_warnings": True, "simulate": True}
 
 
-def search_youtube_videos(query: str) -> list[dict]:
+def search_youtube_videos(query: str) -> list[dict[str, Any]]:
     """Ищет видео на YouTube через yt-dlp.
 
     Args:
@@ -27,7 +28,7 @@ def search_youtube_videos(query: str) -> list[dict]:
         return []
 
 
-def _format_entry(entry: dict) -> dict:
+def _format_entry(entry: dict[str, Any]) -> dict[str, str]:
     """Форматирует запись yt-dlp в простой словарь."""
     title = entry.get("title", "")
     clean_title_str = _clean_title(title)

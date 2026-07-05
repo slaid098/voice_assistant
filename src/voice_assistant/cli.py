@@ -1,11 +1,12 @@
 import sys
 import traceback
 from datetime import datetime
+from types import TracebackType
 
 from loguru import logger
 
-from voice_assistant.audio.sounds import Sound, init_sounds, make_sound
 from voice_assistant.assistant import run_assistant_step
+from voice_assistant.audio.sounds import Sound, init_sounds, make_sound
 
 
 def setup_logging() -> None:
@@ -15,7 +16,11 @@ def setup_logging() -> None:
     logger.add(log_file, level="DEBUG", rotation="10 MB", retention=7, encoding="utf-8")
 
 
-def _crash_handler(exc_type, exc_value, exc_tb) -> None:
+def _crash_handler(
+    exc_type: type[BaseException],
+    exc_value: BaseException,
+    exc_tb: TracebackType | None,
+) -> None:
     logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
     print(f"\n{'=' * 60}", file=sys.stderr)
     print("CRITICAL: Голосовой помощник аварийно завершил работу.", file=sys.stderr)
@@ -40,6 +45,8 @@ def main() -> None:
             break
         except Exception as ex:
             tb = traceback.format_exc()
-            logger.bind(error=ex, error_type=type(ex).__name__).error(f"Ошибка шага ассистента\n{tb}")
+            logger.bind(error=ex, error_type=type(ex).__name__).error(
+                f"Ошибка шага ассистента\n{tb}"
+            )
             print(f"\n[ОШИБКА] {type(ex).__name__}: {ex}", file=sys.stderr)
             print("Подробности в лог-файле.", file=sys.stderr)
