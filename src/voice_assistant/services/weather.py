@@ -169,10 +169,7 @@ def _resolve_city_open_meteo(query: str) -> dict[str, Any] | None:
 
 def _fetch_weather_open_meteo(lat: float, lon: float) -> dict[str, Any]:
     """Получить текущую погоду по координатам через Open-Meteo."""
-    fields = (
-        "temperature_2m,relative_humidity_2m,apparent_temperature,"
-        "wind_speed_10m,weather_code"
-    )
+    fields = "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code"
     params: dict[str, str | float] = {
         "latitude": lat,
         "longitude": lon,
