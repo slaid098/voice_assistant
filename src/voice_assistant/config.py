@@ -39,6 +39,8 @@ class Settings:
     youtube_search_limit: int
     openweather_api_key: str
     weather_default_city: str
+    tts_provider: str
+    tts_cache_size: int
     wake_aliases: list[str]
     junk_words: list[str]
     cmd_junk: list[str]
@@ -68,13 +70,15 @@ def _load_settings() -> Settings:
         wake_threshold=int(os.getenv("WAKE_THRESHOLD", "70")),
         wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "30000")),
         command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
-        samplerate=16000,
-        chunk_ms=100,
-        vad_threshold=200.0,
-        silence_limit_ms=1800,
+        samplerate=int(os.getenv("SAMPLERATE", "16000")),
+        chunk_ms=int(os.getenv("CHUNK_MS", "100")),
+        vad_threshold=float(os.getenv("VAD_THRESHOLD", "200.0")),
+        silence_limit_ms=int(os.getenv("SILENCE_LIMIT_MS", "1800")),
         youtube_search_limit=int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10")),
         openweather_api_key=os.getenv("OPENWEATHER_API_KEY", "").strip(),
         weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Костюковка").strip(),
+        tts_provider=os.getenv("TTS_PROVIDER", "google").strip().lower(),
+        tts_cache_size=int(os.getenv("TTS_CACHE_SIZE", "50")),
         wake_aliases=wake_aliases,
         junk_words=[
             "пожалуйста",

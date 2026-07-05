@@ -10,10 +10,32 @@ def test_settings_defaults():
     assert s.wake_timeout_ms == 30000
     assert s.command_timeout_ms == 6000
     assert s.samplerate == 16000
+    assert s.chunk_ms == 100
     assert s.vad_threshold == 200.0
+    assert s.silence_limit_ms == 1800
     assert s.youtube_search_limit == 10
     assert s.weather_default_city == "Костюковка"
     assert s.openweather_api_key == ""
+    assert s.tts_provider == "google"
+    assert s.tts_cache_size == 50
+
+
+def test_settings_tts_provider_from_env(monkeypatch):
+    monkeypatch.setenv("TTS_PROVIDER", "piper")
+    s = _load_settings()
+    assert s.tts_provider == "piper"
+
+
+def test_settings_silence_limit_from_env(monkeypatch):
+    monkeypatch.setenv("SILENCE_LIMIT_MS", "1000")
+    s = _load_settings()
+    assert s.silence_limit_ms == 1000
+
+
+def test_settings_tts_cache_size_from_env(monkeypatch):
+    monkeypatch.setenv("TTS_CACHE_SIZE", "100")
+    s = _load_settings()
+    assert s.tts_cache_size == 100
 
 
 def test_settings_wake_word_from_env(monkeypatch):

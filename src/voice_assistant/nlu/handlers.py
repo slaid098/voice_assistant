@@ -22,6 +22,7 @@ class IntentHandler(Protocol):
 
 class WeatherHandler:
     def execute(self, payload: str | None, *, listen: ListenFn) -> None:
+        speak("Выполняю.")
         speak(get_weather_text(payload))
         make_sound(Sound.DONE)
 

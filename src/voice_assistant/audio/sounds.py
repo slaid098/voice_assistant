@@ -9,7 +9,7 @@ from loguru import logger
 
 from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 
-_SOUND_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds"))
+_SOUND_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds" / "earcons"))
 _sounds: dict[int, pygame.mixer.Sound] = {}
 
 
