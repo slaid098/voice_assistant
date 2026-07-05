@@ -18,71 +18,33 @@ def test_browser_open_url_error(monkeypatch):
     browser_mod.open_browser_url("https://example.com")
 
 
-def test_get_current_title_no_video():
+def test_get_current_title_no_window(monkeypatch):
+    """On non-Windows or no YouTube window — returns None."""
     import voice_assistant.services.browser as browser_mod
 
-    browser_mod._state._current_url = None
+    monkeypatch.setattr(browser_mod, "get_youtube_window_title", lambda: None)
     assert browser_mod.get_current_title() is None
 
 
-def test_get_current_title_with_url(monkeypatch):
+def test_get_current_title_from_window(monkeypatch):
+    """Window title gives current video title (catches autoplay)."""
     import voice_assistant.services.browser as browser_mod
 
-    browser_mod._state._current_url = "https://youtube.com/watch?v=123"
-
-    class FakeYDL:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return None
-
-        def extract_info(self, url, download=False):
-            return {"title": "Cool Video [Official]"}
-
-    monkeypatch.setattr(browser_mod, "YoutubeDL", lambda opts: FakeYDL())
-    title = browser_mod.get_current_title()
-    assert title is not None
-    assert "Cool Video" in title
-    assert "[" not in title
+    monkeypatch.setattr(browser_mod, "get_youtube_window_title", lambda: "New Video After Autoplay")
+    # Title has no " - YouTube" suffix → returned as-is
+    assert browser_mod.get_current_title() == "New Video After Autoplay"
 
 
-def test_get_current_title_error(monkeypatch):
+def test_get_current_title_strips_youtube_suffix(monkeypatch):
+    """Window title 'Song - YouTube - Google Chrome' → 'Song'."""
     import voice_assistant.services.browser as browser_mod
 
-    browser_mod._state._current_url = "https://youtube.com/watch?v=123"
-
-    class FakeYDL:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return None
-
-        def extract_info(self, url, download=False):
-            raise RuntimeError("network error")
-
-    monkeypatch.setattr(browser_mod, "YoutubeDL", lambda opts: FakeYDL())
-    assert browser_mod.get_current_title() is None
-
-
-def test_get_current_title_empty_title(monkeypatch):
-    import voice_assistant.services.browser as browser_mod
-
-    browser_mod._state._current_url = "https://youtube.com/watch?v=123"
-
-    class FakeYDL:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return None
-
-        def extract_info(self, url, download=False):
-            return {"title": ""}
-
-    monkeypatch.setattr(browser_mod, "YoutubeDL", lambda opts: FakeYDL())
-    assert browser_mod.get_current_title() is None
+    monkeypatch.setattr(
+        browser_mod,
+        "get_youtube_window_title",
+        lambda: "Cool Song - YouTube - Google Chrome",
+    )
+    assert browser_mod.get_current_title() == "Cool Song"
 
 
 def test_clean_title():
@@ -91,3 +53,14 @@ def test_clean_title():
     assert _clean_title("Hello [Official]") == "Hello"
     assert _clean_title("Song (feat. X)") == "Song"
     assert _clean_title("Emoji 🎵 Test") == "Emoji Test"
+    assert _clean_title("  spaces  ") == "spaces"
+
+
+def test_get_youtube_window_title_non_windows():
+    """On non-Windows, returns None (win32gui not available)."""
+    import sys
+
+    import voice_assistant.services.browser as browser_mod
+
+    if sys.platform != "win32":
+        assert browser_mod.get_youtube_window_title() is None

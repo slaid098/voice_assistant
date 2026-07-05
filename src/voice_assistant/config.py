@@ -41,23 +41,16 @@ class Settings:
     weather_default_city: str
     wake_aliases: list[str]
     junk_words: list[str]
+    cmd_junk: list[str]
     intent_rules: list[IntentRule]
 
 
 def _load_settings() -> Settings:
-    return Settings(
-        wake_word=os.getenv("WAKE_WORD", "вики").strip().lower(),
-        wake_threshold=int(os.getenv("WAKE_THRESHOLD", "70")),
-        wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "3000")),
-        command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
-        samplerate=16000,
-        chunk_ms=100,
-        vad_threshold=200.0,
-        silence_limit_ms=1800,
-        youtube_search_limit=int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10")),
-        openweather_api_key=os.getenv("OPENWEATHER_API_KEY", "").strip(),
-        weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Гомель").strip(),
-        wake_aliases=[
+    wake_aliases_env = os.getenv("WAKE_ALIASES", "")
+    wake_aliases = (
+        [a.strip().lower() for a in wake_aliases_env.split(",") if a.strip()]
+        if wake_aliases_env
+        else [
             "вики",
             "wiki",
             "вика",
@@ -67,7 +60,22 @@ def _load_settings() -> Settings:
             "вику",
             "вике",
             "викки",
-        ],
+        ]
+    )
+
+    return Settings(
+        wake_word=os.getenv("WAKE_WORD", "вики").strip().lower(),
+        wake_threshold=int(os.getenv("WAKE_THRESHOLD", "70")),
+        wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "30000")),
+        command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
+        samplerate=16000,
+        chunk_ms=100,
+        vad_threshold=200.0,
+        silence_limit_ms=1800,
+        youtube_search_limit=int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10")),
+        openweather_api_key=os.getenv("OPENWEATHER_API_KEY", "").strip(),
+        weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Гомель").strip(),
+        wake_aliases=wake_aliases,
         junk_words=[
             "пожалуйста",
             "про",
@@ -80,6 +88,20 @@ def _load_settings() -> Settings:
             "привет",
             "слушай",
             "окей",
+        ],
+        cmd_junk=[
+            "какая",
+            "какой",
+            "какие",
+            "какая-то",
+            "найди",
+            "включи",
+            "запусти",
+            "покажи",
+            "расскажи",
+            "в",
+            "на",
+            "е",
         ],
         intent_rules=[
             IntentRule(

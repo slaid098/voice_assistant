@@ -1,14 +1,21 @@
 import re
+import sys
 import webbrowser
 
 from loguru import logger
-from yt_dlp import YoutubeDL
 
-_TITLE_OPTS = {"extract_flat": True, "quiet": True, "no_warnings": True, "simulate": True}
+_IS_WINDOWS = sys.platform == "win32"
+
+if _IS_WINDOWS:
+    from voice_assistant.services.windows_title import get_youtube_window_title
+else:
+
+    def get_youtube_window_title() -> str | None:
+        return None
 
 
 class BrowserState:
-    """Состояние браузера: текущий открытый URL."""
+    """Состояние браузера: последний открытый URL."""
 
     def __init__(self) -> None:
         self._current_url: str | None = None
@@ -26,26 +33,19 @@ class BrowserState:
             logger.bind(error=ex, url=url).error("Не удалось открыть браузер")
 
     def get_current_title(self) -> str | None:
-        """Возвращает название текущего видео через yt-dlp.
+        """Возвращает название ТЕКУЩЕГО видео из заголовка окна браузера.
+
+        Использует win32gui (Windows) — ловит autoplay и смену видео.
+        На других ОС или если окно не найдено — возвращает None.
 
         Returns:
-            Очищенный заголовок или None, если видео не открыто / ошибка.
+            Очищенный заголовок или None.
         """
-        if not self._current_url:
+        raw = get_youtube_window_title()
+        if not raw:
             return None
-
-        try:
-            with YoutubeDL(_TITLE_OPTS) as ydl:
-                info = ydl.extract_info(self._current_url, download=False)
-        except Exception as ex:
-            logger.bind(error=ex, url=self._current_url).warning(
-                "Не удалось получить название видео"
-            )
-            return None
-
-        if not info:
-            return None
-        title = info.get("title", "")
+        # "Video Title - YouTube - Google Chrome" → "Video Title"
+        title = raw.split(" - YouTube")[0]
         return _clean_title(title) if title else None
 
 

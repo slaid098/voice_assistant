@@ -79,21 +79,9 @@ def _extract_payload(text: str, trigger: str, rule: IntentRule) -> str | None:
             raw = raw.replace(word, "", 1).strip()
 
     words = raw.split()
-    cmd_junk = {
-        "какая",
-        "какой",
-        "какие",
-        "какая-то",
-        "найди",
-        "включи",
-        "запусти",
-        "покажи",
-        "расскажи",
-        "в",
-        "на",
-        "е",
-    }
-    while words and (words[0].lower() in settings.junk_words or words[0].lower() in cmd_junk):
+    while words and (
+        str(words[0]).lower() in settings.junk_words or str(words[0]).lower() in settings.cmd_junk
+    ):
         words.pop(0)
 
     result = " ".join(words).strip()

@@ -9,8 +9,10 @@ from voice_assistant.nlu.intent import parse_voice_intent
 from voice_assistant.nlu.wake_word import is_wake_word
 from voice_assistant.services.commands import drain_speech_queue
 from voice_assistant.speech.audio import record_user_speech
-from voice_assistant.speech.stt import transcribe_audio
+from voice_assistant.speech.stt import STTNetworkError, transcribe_audio
 from voice_assistant.speech.tts import speak
+
+_MAX_MISUNDERSTAND = 3
 
 
 def run_assistant_step() -> None:
@@ -18,7 +20,9 @@ def run_assistant_step() -> None:
     drain_speech_queue()
 
     print("\n--- Ожидание активации... ---")
-    activation_text = _listen_text_or_none(timeout_ms=settings.wake_timeout_ms, stage="activation")
+    activation_text = _listen_text_or_none(
+        timeout_ms=settings.wake_timeout_ms, stage="activation", play_beep=False
+    )
     if not activation_text:
         return
     if not is_wake_word(activation_text):
@@ -38,7 +42,11 @@ def run_assistant_step() -> None:
 
 
 def _listen_intent_after_activation() -> dict[str, Any] | None:
-    """Слушает команды после активации, пока не получит валидный интент."""
+    """Слушает команды после активации, пока не получит валидный интент.
+
+    Лимит попыток: после _MAX_MISUNDERSTAND непониманий — выход в режим ожидания.
+    """
+    attempts = 0
     while True:
         command_text = _record_and_transcribe_with_retries(stage="command")
         if not command_text:
@@ -48,32 +56,57 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
         if intent:
             return intent
 
+        attempts += 1
+        if attempts >= _MAX_MISUNDERSTAND:
+            make_sound(Sound.DONE)
+            speak("Не получается. Скажите слово активации снова.")
+            return None
+
         make_sound(Sound.DONE)
         speak("Я вас не поняла, повторите.")
 
 
-def _listen_text_or_none(timeout_ms: int, stage: str) -> str | None:
-    """Слушает микрофон и возвращает распознанный текст."""
-    make_sound(Sound.READY_TO_LISTEN)
+def _listen_text_or_none(timeout_ms: int, stage: str, *, play_beep: bool = True) -> str | None:
+    """Слушает микрофон и возвращает распознанный текст.
+
+    Args:
+        timeout_ms: Максимум ожидания начала речи.
+        stage: Имя стадии для логирования.
+        play_beep: Издать бип перед записью (неблокирующе).
+    """
+    if play_beep:
+        make_sound(Sound.READY_TO_LISTEN, block=False)
+
     audio = record_user_speech(timeout_ms=timeout_ms)
     if audio is None:
         return None
 
-    text = transcribe_audio(audio)
+    try:
+        text = transcribe_audio(audio)
+    except STTNetworkError:
+        make_sound(Sound.DONE)
+        speak("Нет связи с интернетом.")
+        return None
+
     if text:
         logger.info(f"[recognized:{stage}] {text}")
     return text
 
 
 def _record_and_transcribe_with_retries(stage: str, prompt: str | None = None) -> str | None:
-    """Повторно слушает и распознает речь до успеха или таймаута."""
+    """Повторно слушает и распознает речь до успеха или таймаута.
+
+    При таймауте (молчание) — молча возвращается в режим ожидания wake word.
+    """
     while True:
         if prompt:
             speak(prompt)
 
-        text = _listen_text_or_none(timeout_ms=settings.command_timeout_ms, stage=stage)
+        text = _listen_text_or_none(
+            timeout_ms=settings.command_timeout_ms, stage=stage, play_beep=True
+        )
         if text is None:
-            speak("Ушла спать.")
+            make_sound(Sound.DONE)
             return None
         if text:
             return text

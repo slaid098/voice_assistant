@@ -17,7 +17,7 @@ def test_stop_handler(mock_speak, mock_make_sound):
     from voice_assistant.nlu.handlers import StopHandler
 
     StopHandler().execute(None, listen=MagicMock())
-    mock_speak.assert_called_with("Ушла спать.")
+    assert mock_speak.call_args[0][0] == "Хорошо."
     mock_make_sound.assert_called_once()
 
 

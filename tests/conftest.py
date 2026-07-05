@@ -10,6 +10,7 @@ def _no_env() -> Generator[None, None, None]:
     """Isolate env vars per test."""
     saved = dict(os.environ)
     os.environ.pop("WAKE_WORD", None)
+    os.environ.pop("WAKE_ALIASES", None)
     os.environ.pop("WAKE_THRESHOLD", None)
     os.environ.pop("OPENWEATHER_API_KEY", None)
     os.environ.pop("WEATHER_DEFAULT_CITY", None)
@@ -20,15 +21,17 @@ def _no_env() -> Generator[None, None, None]:
 
 
 @pytest.fixture(autouse=True)
-def _dummy_audio(monkeypatch) -> None:
+def _dummy_audio(monkeypatch: pytest.MonkeyPatch) -> None:
     """Avoid real audio device in tests."""
     monkeypatch.setenv("SDL_AUDIODRIVER", "dummy")
+    import pygame
+
+    pygame.mixer.init(frequency=24000, size=-16, channels=1)
 
 
 @pytest.fixture
-def mock_speak(monkeypatch) -> MagicMock:
-    """Mock TTS speak to avoid audio device."""
-    import voice_assistant.audio.sounds as sounds_mod
+def mock_speak(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Mock TTS speak to avoid audio device and network."""
     import voice_assistant.nlu.handlers as h_mod
     import voice_assistant.services.commands as cmd_mod
     import voice_assistant.services.youtube_flow as yf_mod
@@ -39,12 +42,11 @@ def mock_speak(monkeypatch) -> MagicMock:
     monkeypatch.setattr(cmd_mod, "speak", mock)
     monkeypatch.setattr(h_mod, "speak", mock)
     monkeypatch.setattr(yf_mod, "speak", mock)
-    monkeypatch.setattr(sounds_mod, "speak", mock)
     return mock
 
 
 @pytest.fixture
-def mock_make_sound(monkeypatch) -> MagicMock:
+def mock_make_sound(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Mock make_sound to avoid audio device."""
     import voice_assistant.assistant as a_mod
     import voice_assistant.audio.sounds as sounds_mod

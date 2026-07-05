@@ -6,7 +6,7 @@ from loguru import logger
 from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import Intent
 from voice_assistant.services.browser import get_current_title
-from voice_assistant.services.commands import handle_simple_command
+from voice_assistant.services.commands import cancel_timer, handle_simple_command
 from voice_assistant.services.weather import get_weather_text
 from voice_assistant.services.youtube_flow import run_youtube_flow
 from voice_assistant.speech.tts import speak
@@ -43,7 +43,8 @@ class YouTubeSearchHandler:
 
 class StopHandler:
     def execute(self, payload: str | None, *, listen: ListenFn) -> None:
-        speak("Ушла спать.")
+        cancel_timer()
+        speak("Хорошо.")
         make_sound(Sound.DONE)
 
 

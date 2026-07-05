@@ -1,38 +1,62 @@
-import io
 import tempfile
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 
-import gtts
 import pygame
 from loguru import logger
 
+from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
+from voice_assistant.speech.providers.base import TTSProvider
+from voice_assistant.speech.providers.google_tts import google_tts
+from voice_assistant.speech.providers.piper_tts import piper_tts
 
-def speak(text: str) -> None:
-    """Озвучивает текст через gTTS и воспроизводит через pygame.
+_providers: list[TTSProvider] = [google_tts, piper_tts]
 
-    Блокирующая — ждёт окончания воспроизведения.
+
+def speak(text: str, *, on_all_fail: Callable[[], None] | None = None) -> None:
+    """Озвучивает текст через любой доступный TTS-провайдер.
+
+    Логика fallback:
+    1. Google TTS (онлайн) — основной
+    2. Piper TTS (офлайн ONNX) — fallback при сетевой ошибке
+    3. on_all_fail callback — last resort (звук ошибки)
+
+    Args:
+        text: Текст для озвучки.
+        on_all_fail: Callback если все провайдеры упали (например, make_sound).
     """
     _ensure_mixer()
 
-    try:
-        mp3_bytes = io.BytesIO()
-        tts = gtts.gTTS(text, lang="ru", slow=False, lang_check=False)
-        tts.write_to_fp(mp3_bytes)
-        mp3_bytes.seek(0)
+    for provider in _providers:
+        if not provider.is_available():
+            continue
+        try:
+            audio_bytes = provider.synthesize(text)
+        except Exception as ex:
+            logger.bind(error=ex, provider=type(provider).__name__).warning(
+                "TTS provider failed, trying next"
+            )
+            continue
+        else:
+            _play_bytes(audio_bytes)
+            return
 
-        with _temp_mp3_path(mp3_bytes) as path:
-            _play_file(path)
-    except Exception as ex:
-        logger.bind(error=ex).warning("TTS generation or playback failed")
+    logger.error("All TTS providers failed")
+    if on_all_fail is not None:
+        on_all_fail()
 
 
-def _ensure_mixer() -> None:
-    """Инициализирует pygame mixer один раз."""
-    if pygame.mixer.get_init() is not None:
-        return
-    pygame.mixer.init(frequency=24000, size=-16, channels=1)
+def _play_bytes(audio_bytes: bytes) -> None:
+    """Воспроизводит аудио-байты через pygame (блокирующе)."""
+    suffix = ".mp3" if _is_mp3(audio_bytes) else ".wav"
+    with _temp_audio_path(audio_bytes, suffix) as path:
+        _play_file(path)
+
+
+def _is_mp3(data: bytes) -> bool:
+    """Проверяет, MP3 ли это (по заголовку ID3 или MPEG frame)."""
+    return data[:3] == b"ID3" or (data[:2] == b"\xff\xfb" or data[:2] == b"\xff\xf3")
 
 
 def _play_file(path: str) -> None:
@@ -47,12 +71,12 @@ def _play_file(path: str) -> None:
 
 
 @contextmanager
-def _temp_mp3_path(mp3_bytes: io.BytesIO) -> Generator[str]:
-    """Создаёт временный MP3-файл и удаляет его после использования."""
+def _temp_audio_path(audio_bytes: bytes, suffix: str) -> Generator[str]:
+    """Создаёт временный аудиофайл и удаляет его после использования."""
     temp_path = ""
     try:
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-            tmp.write(mp3_bytes.getvalue())
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(audio_bytes)
             temp_path = tmp.name
         yield temp_path
     finally:

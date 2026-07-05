@@ -1,4 +1,5 @@
 import sys
+import threading
 import traceback
 from datetime import datetime
 from types import TracebackType
@@ -6,7 +7,7 @@ from types import TracebackType
 from loguru import logger
 
 from voice_assistant.assistant import run_assistant_step
-from voice_assistant.audio.sounds import Sound, init_sounds, make_sound
+from voice_assistant.audio.sounds import Sound, init_sounds, make_sound, speak_with_fallback
 
 
 def setup_logging() -> None:
@@ -21,12 +22,22 @@ def _crash_handler(
     exc_value: BaseException,
     exc_tb: TracebackType | None,
 ) -> None:
+    """Обрабатывает критические ошибки — озвучивает и завершает работу."""
     logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
     print(f"\n{'=' * 60}", file=sys.stderr)
     print("CRITICAL: Голосовой помощник аварийно завершил работу.", file=sys.stderr)
     print("".join(traceback.format_exception(exc_type, exc_value, exc_tb)), file=sys.stderr)
     print(f"{'=' * 60}", file=sys.stderr)
-    input("\nНажмите Enter, чтобы закрыть окно...")
+
+    try:
+        make_sound(Sound.DONE)
+        speak_with_fallback("Произошла критическая ошибка. Программа завершит работу.")
+    except Exception:
+        logger.warning("Failed to speak crash message")
+
+    timer = threading.Timer(10.0, lambda: sys.exit(1))
+    timer.daemon = True
+    timer.start()
 
 
 def main() -> None:
@@ -48,5 +59,8 @@ def main() -> None:
             logger.bind(error=ex, error_type=type(ex).__name__).error(
                 f"Ошибка шага ассистента\n{tb}"
             )
-            print(f"\n[ОШИБКА] {type(ex).__name__}: {ex}", file=sys.stderr)
-            print("Подробности в лог-файле.", file=sys.stderr)
+            try:
+                make_sound(Sound.DONE)
+                speak_with_fallback("Произошла ошибка. Повторите команду.")
+            except Exception:
+                logger.warning("Failed to speak error message")

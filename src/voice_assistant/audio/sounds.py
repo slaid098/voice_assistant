@@ -7,7 +7,7 @@ from typing import Any
 import pygame
 from loguru import logger
 
-from voice_assistant.speech.tts import _ensure_mixer, speak
+from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 
 _SOUND_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds"))
 _sounds: dict[int, pygame.mixer.Sound] = {}
@@ -16,7 +16,7 @@ _sounds: dict[int, pygame.mixer.Sound] = {}
 class Sound(IntEnum):
     """Звуковые ярлыки (earcons) для accessibility."""
 
-    READY_TO_LISTEN = 1  # бип «говори» — перед каждой записью
+    READY_TO_LISTEN = 1  # бип «говори» — перед записью команды
     SEARCH_STARTED = 2  # чайм «поиск пошёл» — YouTube запрос принят
     STARTUP = 3  # фанфара «я проснулась» — один раз при старте
     DONE = 4  # финал «действие завершено / ошибка»
@@ -33,11 +33,13 @@ def init_sounds() -> None:
             logger.bind(error=ex, path=str(path)).warning("Не удалось загрузить звук")
 
 
-def make_sound(sound: Sound) -> None:
-    """Воспроизводит звук-ярлык (блокирующе — дослушивает до конца).
+def make_sound(sound: Sound, *, block: bool = True) -> None:
+    """Воспроизводит звук-ярлык.
 
     Args:
         sound: Какой звук воспроизвести.
+        block: True — ждать окончания (по умолчанию).
+               False — неблокирующе (для бипа перед записью).
     """
     try:
         snd = _sounds.get(sound.value)
@@ -45,10 +47,21 @@ def make_sound(sound: Sound) -> None:
             logger.warning(f"Звук {sound.value} не загружен")
             return
         snd.play()
-        while pygame.mixer.get_busy():
-            pygame.time.wait(50)
+        if block:
+            while pygame.mixer.get_busy():
+                pygame.time.wait(50)
     except Exception as ex:
         logger.bind(error=ex).warning(f"Не удалось воспроизвести звук {sound.value}")
+
+
+def speak_with_fallback(text: str) -> None:
+    """Озвучивает текст с fallback: Google → Piper → звук ошибки.
+
+    Импортирует speak() лениво, чтобы избежать цикла sounds ↔ tts.
+    """
+    from voice_assistant.speech.tts import speak
+
+    speak(text, on_all_fail=lambda: make_sound(Sound.DONE))
 
 
 def with_sound_effects(
@@ -65,7 +78,7 @@ def with_sound_effects(
             make_sound(Sound.READY_TO_LISTEN)
             result = func(*args, **kwargs)
             if say_done:
-                speak("Сделано")
+                speak_with_fallback("Сделано")
             make_sound(Sound.DONE)
             return result
 

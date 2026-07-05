@@ -7,7 +7,7 @@ def test_settings_defaults():
     s = _load_settings()
     assert s.wake_word == "вики"
     assert s.wake_threshold == 70
-    assert s.wake_timeout_ms == 3000
+    assert s.wake_timeout_ms == 30000
     assert s.command_timeout_ms == 6000
     assert s.samplerate == 16000
     assert s.vad_threshold == 200.0

@@ -1,0 +1,107 @@
+import io
+import wave
+from collections.abc import Iterator
+from importlib.resources import files
+from pathlib import Path
+from typing import Protocol, cast
+
+from loguru import logger
+
+from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
+
+_VOICE_DIR: Path = Path(str(files("voice_assistant") / "assets" / "voices"))
+_VOICE_MODEL = _VOICE_DIR / "ru_RU-irina-medium.onnx"
+_VOICE_CONFIG = _VOICE_DIR / "ru_RU-irina-medium.onnx.json"
+
+
+class PiperAudioChunk(Protocol):
+    """Скрытый тип AudioChunk из piper."""
+
+    audio_int16_bytes: bytes
+
+
+class PiperVoiceProtocol(Protocol):
+    """Скрытый тип PiperVoice из piper."""
+
+    def synthesize(self, text: str) -> Iterator[PiperAudioChunk]: ...
+
+
+class _VoiceState:
+    """Лениво загружает и хранит модель Piper."""
+
+    def __init__(self) -> None:
+        self._voice: PiperVoiceProtocol | None = None
+        self._load_attempted = False
+
+    def get(self) -> PiperVoiceProtocol | None:
+        """Возвращает модель, загружая при первом обращении."""
+        if self._voice is not None or self._load_attempted:
+            return self._voice
+
+        self._load_attempted = True
+
+        if not _VOICE_MODEL.exists() or not _VOICE_CONFIG.exists():
+            logger.warning("Piper voice model not found, offline TTS unavailable")
+            return None
+
+        try:
+            _ensure_mixer()
+            from piper import PiperVoice  # noqa: PLC0415 — optional dependency
+
+            self._voice = cast(
+                "PiperVoiceProtocol",
+                PiperVoice.load(str(_VOICE_MODEL), config_path=str(_VOICE_CONFIG)),
+            )
+            logger.info("Piper voice model loaded (offline TTS ready)")
+        except Exception as ex:
+            logger.bind(error=ex).warning("Failed to load Piper voice model")
+
+        return self._voice
+
+
+_state = _VoiceState()
+
+
+class PiperTTSProvider:
+    """Офлайн TTS через Piper (ONNX, CPU). Fallback при недоступности Google."""
+
+    def __init__(self) -> None:
+        self._voice: PiperVoiceProtocol | None = None
+
+    def _ensure_loaded(self) -> PiperVoiceProtocol | None:
+        if self._voice is None:
+            self._voice = _state.get()
+        return self._voice
+
+    def synthesize(self, text: str) -> bytes:
+        """Синтезирует текст через Piper ONNX, возвращает WAV-байты.
+
+        Args:
+            text: Текст для озвучки.
+
+        Returns:
+            WAV-байты (16-bit PCM, mono, 22050 Hz).
+
+        Raises:
+            RuntimeError: если модель не загружена.
+        """
+        voice = self._ensure_loaded()
+        if voice is None:
+            raise RuntimeError("Piper voice model not loaded")
+
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(22050)
+            for chunk in voice.synthesize(text):
+                wf.writeframes(chunk.audio_int16_bytes)
+        buf.seek(0)
+        return buf.read()
+
+    def is_available(self) -> bool:
+        """Проверяет, загружена ли модель Piper."""
+        return self._ensure_loaded() is not None
+
+
+piper_tts = PiperTTSProvider()

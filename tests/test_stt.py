@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 
 def test_transcribe_success(monkeypatch):
@@ -26,13 +27,15 @@ def test_transcribe_request_error(monkeypatch):
     import speech_recognition as sr
 
     import voice_assistant.speech.stt as stt_mod
+    from voice_assistant.speech.stt import STTNetworkError
 
     def raise_error(audio, **kw):
         raise sr.RequestError("network")
 
     monkeypatch.setattr(stt_mod._recognizer, "recognize_google", raise_error)
     audio = np.array([0, 1, 2], dtype=np.int16)
-    assert stt_mod.transcribe_audio(audio) is None
+    with pytest.raises(STTNetworkError):
+        stt_mod.transcribe_audio(audio)
 
 
 def test_transcribe_exception(monkeypatch):

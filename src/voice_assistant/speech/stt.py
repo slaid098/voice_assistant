@@ -7,6 +7,11 @@ from loguru import logger
 
 from voice_assistant.config import settings
 
+
+class STTNetworkError(Exception):
+    """Сетевая ошибка STT — интернет недоступен."""
+
+
 _recognizer = sr.Recognizer()
 
 
@@ -17,7 +22,10 @@ def transcribe_audio(audio_data: np.ndarray) -> str | None:
         audio_data: Numpy-массив аудио (int16, 16 kHz, mono).
 
     Returns:
-        Текст в нижнем регистре или None при ошибке.
+        Текст в нижнем регистре или None при тишине (не распознано).
+
+    Raises:
+        STTNetworkError: при сетевой ошибке (нет интернета).
     """
     try:
         wav_bytes = _to_wav_bytes(audio_data)
@@ -28,7 +36,7 @@ def transcribe_audio(audio_data: np.ndarray) -> str | None:
         return None
     except sr.RequestError as ex:
         logger.bind(error=ex).warning("STT: ошибка сети или таймаут")
-        return None
+        raise STTNetworkError("Нет связи с сервером распознавания") from ex
     except Exception as ex:
         logger.bind(error=ex, error_type=type(ex).__name__).error("STT: неожиданная ошибка")
         return None

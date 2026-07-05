@@ -3,9 +3,39 @@ import re
 import threading
 from datetime import datetime
 
+from loguru import logger
+
 from voice_assistant.speech.tts import speak
 
 _speech_queue: queue.Queue[str] = queue.Queue()
+
+
+class _TimerState:
+    """Управляет активным таймером."""
+
+    def __init__(self) -> None:
+        self._active_timer: threading.Timer | None = None
+
+    def set(self, timer: threading.Timer) -> None:
+        """Устанавливает новый таймер, отменяя предыдущий."""
+        self.cancel()
+        self._active_timer = timer
+
+    def cancel(self) -> bool:
+        """Отменяет активный таймер. Возвращает True, если был активный."""
+        if self._active_timer is None:
+            return False
+        self._active_timer.cancel()
+        self._active_timer = None
+        logger.info("Активный таймер отменён")
+        return True
+
+    def clear(self) -> None:
+        """Очищает ссылку (после срабатывания)."""
+        self._active_timer = None
+
+
+_timer_state = _TimerState()
 
 
 def drain_speech_queue() -> None:
@@ -16,6 +46,11 @@ def drain_speech_queue() -> None:
         except queue.Empty:
             break
         speak(text)
+
+
+def cancel_timer() -> None:
+    """Отменяет активный таймер (если есть)."""
+    _timer_state.cancel()
 
 
 def handle_simple_command(intent_name: str, payload: str | None) -> None:
@@ -33,10 +68,13 @@ def handle_simple_command(intent_name: str, payload: str | None) -> None:
             "Скажите погода — расскажу погоду. "
             "Скажите время — скажу текущее время. "
             "Скажите таймер — поставлю таймер. "
-            "Скажите помощь — повторю команды. "
-            "Скажите название — скажу, что сейчас играет."
+            "Скажите название — скажу, что сейчас играет. "
+            "Скажите стоп — отменю таймер."
         )
         speak(_help_text)
+
+    elif intent_name == "stop":
+        cancel_timer()
 
 
 def _get_time_text() -> str:
@@ -48,7 +86,10 @@ def _get_time_text() -> str:
 
 
 def _handle_timer(payload: str | None) -> None:
-    """Ставит таймер (daemon thread, озвучка через queue)."""
+    """Ставит таймер (daemon thread, озвучка через queue).
+
+    Если уже есть активный таймер — отменяет его.
+    """
     if not payload:
         speak("Укажите время для таймера. Например: таймер пять минут.")
         return
@@ -62,11 +103,13 @@ def _handle_timer(payload: str | None) -> None:
     speak(f"Ставлю таймер на {display}.")
 
     def _on_timer_done() -> None:
+        _timer_state.clear()
         _speech_queue.put(f"Таймер на {display} истёк.")
 
     timer = threading.Timer(seconds, _on_timer_done)
     timer.daemon = True
     timer.start()
+    _timer_state.set(timer)
 
 
 def _parse_timer_seconds(payload: str) -> int | None:
