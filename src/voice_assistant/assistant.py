@@ -44,6 +44,7 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
     """Слушает команды после активации, пока не получит валидный интент.
 
     Лимит попыток: после _MAX_MISUNDERSTAND непониманий — выход в режим ожидания.
+    При таймауте (молчание) — один бип DONE и выход в режим ожидания wake word.
     """
     attempts = 0
     first_attempt = True
@@ -53,6 +54,7 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
         )
         first_attempt = False
         if not command_text:
+            make_sound(Sound.DONE)
             return None
 
         intent = parse_voice_intent(command_text)
@@ -101,7 +103,9 @@ def _record_and_transcribe_with_retries(
 ) -> str | None:
     """Повторно слушает и распознает речь до успеха или таймаута.
 
-    При таймауте (молчание) — молча возвращается в режим ожидания wake word.
+    При таймауте (молчание) — молча возвращает None. Финальный бип DONE —
+    ответственность вызывающего уровня (handler или _listen_intent_after_activation).
+    При непонимании (речь была, но не распознана) — бип DONE + переспрос.
     """
     while True:
         if prompt:
@@ -111,7 +115,6 @@ def _record_and_transcribe_with_retries(
             timeout_ms=settings.command_timeout_ms, stage=stage, play_beep=play_beep
         )
         if text is None:
-            make_sound(Sound.DONE)
             return None
         if text:
             return text

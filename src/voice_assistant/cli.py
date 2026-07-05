@@ -47,9 +47,10 @@ def main() -> None:
 
     init_sounds()
     preload_piper()
-    make_sound(Sound.STARTUP)
 
     print("=== Голосовой помощник запущен ===")
+    make_sound(Sound.STARTUP)
+
     while True:
         try:
             run_assistant_step()
