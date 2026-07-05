@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-07-05
+
+### Fixed
+- Двойной бип DONE при таймауте в YouTube-навигации — DONE играл на двух уровнях
+  (внутри listen-функции и в handler). Теперь — единая ответственность: финальный
+  бип играет только на верхнем уровне (handler), нижние уровни возвращают None молча.
+- STARTUP бип играл до полной готовности — теперь играет после инициализации звуков и
+  предзагрузки Piper, прямо перед входом в цикл прослушивания.
+
+### Added
+- Интеграционные тесты workflow (`tests/test_workflow.py`) — проверяют точную
+  последовательность вызовов make_sound/speak на каждом этапе без реальных аудио/сети:
+  - wake → weather (DONE ровно 1)
+  - wake → youtube → таймаут навигации (DONE ровно 1, не 2)
+  - wake → таймаут команды (DONE ровно 1)
+  - wake → 3x непонимание → «Не получается»
+  - wake word не распознана → выход без звуков
+  - молчание на wake word → выход без звуков
+
 ## [1.1.0] — 2026-07-05
 
 ### Added

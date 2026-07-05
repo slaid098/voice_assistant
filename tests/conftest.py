@@ -32,6 +32,7 @@ def _dummy_audio(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def mock_speak(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Mock TTS speak to avoid audio device and network."""
+    import voice_assistant.assistant as a_mod
     import voice_assistant.nlu.handlers as h_mod
     import voice_assistant.services.commands as cmd_mod
     import voice_assistant.services.youtube_flow as yf_mod
@@ -39,6 +40,7 @@ def mock_speak(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
     mock = MagicMock()
     monkeypatch.setattr(tts_mod, "speak", mock)
+    monkeypatch.setattr(a_mod, "speak", mock)
     monkeypatch.setattr(cmd_mod, "speak", mock)
     monkeypatch.setattr(h_mod, "speak", mock)
     monkeypatch.setattr(yf_mod, "speak", mock)
