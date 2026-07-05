@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Protocol
 
 from voice_assistant.config import Intent
+from voice_assistant.services.browser import get_current_title
 from voice_assistant.services.commands import handle_simple_command
 from voice_assistant.services.weather import get_weather_text
 from voice_assistant.services.youtube_flow import run_youtube_flow
@@ -39,6 +40,15 @@ class StopHandler:
         speak("Ушла спать.")
 
 
+class NowPlayingHandler:
+    def execute(self, payload: str | None, *, listen: ListenFn) -> None:
+        title = get_current_title()
+        if title:
+            speak(f"Сейчас играет: {title}")
+        else:
+            speak("Сейчас ничего не играет.")
+
+
 _HANDLERS: dict[str, IntentHandler] = {
     Intent.WEATHER.value: WeatherHandler(),
     Intent.TIME.value: SimpleCommandHandler(Intent.TIME.value),
@@ -46,6 +56,7 @@ _HANDLERS: dict[str, IntentHandler] = {
     Intent.HELP.value: SimpleCommandHandler(Intent.HELP.value),
     Intent.YOUTUBE_SEARCH.value: YouTubeSearchHandler(),
     Intent.STOP.value: StopHandler(),
+    Intent.NOW_PLAYING.value: NowPlayingHandler(),
 }
 
 

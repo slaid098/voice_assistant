@@ -14,6 +14,7 @@ class Intent(StrEnum):
     TIME = "time"
     HELP = "help"
     TIMER = "timer"
+    NOW_PLAYING = "now_playing"
     UNKNOWN = "unknown"
 
 
@@ -153,6 +154,18 @@ def _load_settings() -> Settings:
                     "что ты умеешь",
                     "какие команды",
                     "помоги",
+                ],
+                threshold=65,
+                has_payload=False,
+            ),
+            IntentRule(
+                intent=Intent.NOW_PLAYING,
+                keywords=[
+                    "название",
+                    "что играет",
+                    "как называется",
+                    "что играет сейчас",
+                    "что играет",
                 ],
                 threshold=65,
                 has_payload=False,
