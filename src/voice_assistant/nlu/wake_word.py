@@ -9,7 +9,7 @@ WakeWordDetector Protocol — точка расширения для будущ�
 """
 
 import json
-from typing import Protocol, cast
+from typing import Protocol
 
 import numpy as np
 from loguru import logger
@@ -123,29 +123,22 @@ class VoskWakeWordDetector:
         self._recognizer: VoskRecognizerProtocol | None = None
         self._load_attempted = False
 
-    def _ensure_loaded(self) -> object | None:
+    def _ensure_loaded(self) -> VoskRecognizerProtocol | None:
         """Лениво создаёт KaldiRecognizer с грамматикой из wake_aliases."""
         if self._recognizer is not None or self._load_attempted:
             return self._recognizer
 
         self._load_attempted = True
         from voice_assistant.speech.providers.stt.vosk_stt import (  # noqa: PLC0415
-            _state as vosk_state,
+            create_recognizer,
         )
 
-        model = vosk_state.get()
-        if model is None:
-            logger.warning("Vosk wake-word детектор недоступен (модель не загружена)")
-            return None
-
         grammar = _build_grammar()
-        try:
-            self._recognizer = cast(
-                "VoskRecognizerProtocol", model.recognizer(settings.samplerate, grammar)
-            )
+        self._recognizer = create_recognizer(grammar)
+        if self._recognizer is not None:
             logger.info("Vosk wake-word детектор готов (грамматика + fuzzy-порог)")
-        except Exception as ex:
-            logger.bind(error=ex).warning("Не удалось создать Vosk wake-word recognizer")
+        else:
+            logger.warning("Vosk wake-word детектор недоступен (модель не загружена)")
 
         return self._recognizer
 
@@ -161,13 +154,12 @@ class VoskWakeWordDetector:
             return None
 
         raw_bytes = chunk.tobytes()
-        rec = cast("VoskRecognizerProtocol", recognizer)
-        if rec.accept_waveform(raw_bytes):
-            result = json.loads(rec.result())
+        if recognizer.accept_waveform(raw_bytes):
+            result = json.loads(recognizer.result())
             text = result.get("text", "").strip().lower()
             return _check_wake_word_fuzzy(text)
 
-        partial = json.loads(rec.partial_result())
+        partial = json.loads(recognizer.partial_result())
         text = partial.get("partial", "").strip().lower()
         return _check_wake_word_fuzzy(text)
 
