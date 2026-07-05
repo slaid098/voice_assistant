@@ -4,6 +4,7 @@ from voice_assistant.config import settings
 from voice_assistant.nlu.handlers import execute_intent
 from voice_assistant.nlu.intent import parse_voice_intent
 from voice_assistant.nlu.wake_word import is_wake_word
+from voice_assistant.services.commands import drain_speech_queue
 from voice_assistant.speech.audio import record_user_speech
 from voice_assistant.speech.stt import transcribe_audio
 from voice_assistant.speech.tts import speak
@@ -11,6 +12,8 @@ from voice_assistant.speech.tts import speak
 
 def run_assistant_step() -> None:
     """Выполняет один шаг ассистента от активации до ответа."""
+    drain_speech_queue()
+
     print("\n--- Ожидание активации... ---")
     activation_text = _listen_text_or_none(
         timeout_ms=settings.wake_timeout_ms, stage="activation"

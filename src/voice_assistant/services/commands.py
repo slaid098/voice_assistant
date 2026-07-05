@@ -1,7 +1,20 @@
+import queue
 import threading
 from datetime import datetime
 
 from voice_assistant.speech.tts import speak
+
+_speech_queue: queue.Queue[str] = queue.Queue()
+
+
+def drain_speech_queue() -> None:
+    """Вызывается из main loop — озвучивает все накопленные сообщения от timer."""
+    while True:
+        try:
+            text = _speech_queue.get_nowait()
+        except queue.Empty:
+            break
+        speak(text)
 
 
 def handle_simple_command(intent_name: str, payload: str | None) -> None:
@@ -19,7 +32,8 @@ def handle_simple_command(intent_name: str, payload: str | None) -> None:
             "Скажите погода — расскажу погоду. "
             "Скажите время — скажу текущее время. "
             "Скажите таймер — поставлю таймер. "
-            "Скажите помощь — повторю команды."
+            "Скажите помощь — повторю команды. "
+            "Скажите название — скажу, что сейчас играет."
         )
         speak(_help_text)
 
@@ -33,7 +47,7 @@ def _get_time_text() -> str:
 
 
 def _handle_timer(payload: str | None) -> None:
-    """Ставит таймер (daemon thread)."""
+    """Ставит таймер (daemon thread, озвучка через queue)."""
     if not payload:
         speak("Укажите время для таймера. Например: таймер пять минут.")
         return
@@ -47,7 +61,7 @@ def _handle_timer(payload: str | None) -> None:
     speak(f"Ставлю таймер на {display}.")
 
     def _on_timer_done() -> None:
-        speak(f"Таймер на {display} истёк.")
+        _speech_queue.put(f"Таймер на {display} истёк.")
 
     timer = threading.Timer(seconds, _on_timer_done)
     timer.daemon = True
