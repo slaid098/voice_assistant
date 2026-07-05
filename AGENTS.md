@@ -16,10 +16,14 @@ Voice assistant for visually impaired users. Russian language. Google STT + gTTS
 - `assistant.py` — orchestrator (thin: wake → listen → intent → execute)
 - `config.py` — `Settings` frozen dataclass, `Intent` StrEnum, `IntentRule` dataclass
 - `audio/sounds.py` — 4 earcons (mp3) via pygame.mixer, `@with_sound_effects`
-- `speech/` — `audio.py` (VAD), `stt.py` (Google), `tts.py` (gTTS + pygame)
+- `speech/` — `audio.py` (VAD), `stt.py` (Google), `tts.py` (gTTS/Piper + pygame), `mixer.py`, `providers/` (base, google_tts, piper_tts)
 - `nlu/` — `wake_word.py` (fuzzy), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
 - `services/` — `browser.py`, `commands.py`, `weather.py`, `youtube.py`, `youtube_flow.py`
-- `assets/sounds/{1,2,3,4}.mp3` — earcons (packed via importlib.resources)
+- `assets/sounds/` — единая папка аудио-ассетов:
+  - `earcons/{1,2,3,4}.mp3` — звуковые ярлыки (бипы)
+  - `phrases/*.mp3` + `manifest.json` — предгенерированные фразы через Google TTS
+  - `voices/ru_RU-irina-medium.onnx(.json)` — модель Piper (офлайн TTS, fallback)
+- `scripts/` — `gen_phrases.py` (предгенерация фраз), `install_autorun.bat` / `remove_autorun.bat` (автозагрузка Windows)
 
 ### Sound triggers
 - `Sound.STARTUP` (3) — once at boot
@@ -33,6 +37,12 @@ Voice assistant for visually impaired users. Russian language. Google STT + gTTS
 - `OPENWEATHER_API_KEY` — weather API key
 - `WEATHER_DEFAULT_CITY` — default city (default: "Гомель")
 - `YOUTUBE_SEARCH_LIMIT` — search results count (default: 10)
+- `TTS_PROVIDER` — TTS engine: `google` / `piper` / `auto` (default: `google`)
+- `TTS_CACHE_SIZE` — LRU cache size for dynamic phrases (default: 50)
+- `SILENCE_LIMIT_MS` — silence to end speech (default: 1800)
+- `CHUNK_MS` — VAD chunk size (default: 100)
+- `VAD_THRESHOLD` — voice detection RMS threshold (default: 200.0)
+- `SAMPLERATE` — microphone sample rate (default: 16000)
 
 ### Tech stack
 - Python >=3.12, uv, hatchling

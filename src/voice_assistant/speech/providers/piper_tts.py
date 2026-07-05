@@ -9,7 +9,7 @@ from loguru import logger
 
 from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 
-_VOICE_DIR: Path = Path(str(files("voice_assistant") / "assets" / "voices"))
+_VOICE_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds" / "voices"))
 _VOICE_MODEL = _VOICE_DIR / "ru_RU-irina-medium.onnx"
 _VOICE_CONFIG = _VOICE_DIR / "ru_RU-irina-medium.onnx.json"
 
@@ -63,7 +63,15 @@ _state = _VoiceState()
 
 
 class PiperTTSProvider:
-    """Офлайн TTS через Piper (ONNX, CPU). Fallback при недоступности Google."""
+    """Офлайн TTS через Piper (ONNX, CPU). Fallback при недоступности Google.
+
+    is_cloud=False — локальный синтез мгновенный, кэширование не применяется.
+    fixed_phrase() всегда возвращает None: локальный провайдер синтезирует
+    на лету, предгенерированные MP3 от Google не используются (другой голос).
+    """
+
+    name = "piper"
+    is_cloud = False
 
     def __init__(self) -> None:
         self._voice: PiperVoiceProtocol | None = None
@@ -102,6 +110,10 @@ class PiperTTSProvider:
     def is_available(self) -> bool:
         """Проверяет, загружена ли модель Piper."""
         return self._ensure_loaded() is not None
+
+    def fixed_phrase(self, text: str) -> bytes | None:
+        """Локальный провайдер не использует предгенерированные фразы."""
+        return None
 
 
 piper_tts = PiperTTSProvider()

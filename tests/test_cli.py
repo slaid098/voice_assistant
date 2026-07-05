@@ -24,5 +24,6 @@ def test_main_loop_handles_keyboard_interrupt(monkeypatch):
     monkeypatch.setattr(cli_mod, "run_assistant_step", fake_step)
     monkeypatch.setattr(cli_mod, "setup_logging", MagicMock())
     monkeypatch.setattr(cli_mod, "init_sounds", MagicMock())
+    monkeypatch.setattr(cli_mod, "preload_piper", MagicMock())
     monkeypatch.setattr(cli_mod, "make_sound", MagicMock())
     cli_mod.main()  # should exit cleanly

@@ -28,7 +28,6 @@ def run_assistant_step() -> None:
     if not is_wake_word(activation_text):
         return
 
-    make_sound(Sound.READY_TO_LISTEN)
     speak("Слушаю.")
     intent = _listen_intent_after_activation()
     if intent is None:
@@ -47,8 +46,12 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
     Лимит попыток: после _MAX_MISUNDERSTAND непониманий — выход в режим ожидания.
     """
     attempts = 0
+    first_attempt = True
     while True:
-        command_text = _record_and_transcribe_with_retries(stage="command")
+        command_text = _record_and_transcribe_with_retries(
+            stage="command", play_beep=not first_attempt
+        )
+        first_attempt = False
         if not command_text:
             return None
 
@@ -93,7 +96,9 @@ def _listen_text_or_none(timeout_ms: int, stage: str, *, play_beep: bool = True)
     return text
 
 
-def _record_and_transcribe_with_retries(stage: str, prompt: str | None = None) -> str | None:
+def _record_and_transcribe_with_retries(
+    stage: str, prompt: str | None = None, *, play_beep: bool = True
+) -> str | None:
     """Повторно слушает и распознает речь до успеха или таймаута.
 
     При таймауте (молчание) — молча возвращается в режим ожидания wake word.
@@ -103,7 +108,7 @@ def _record_and_transcribe_with_retries(stage: str, prompt: str | None = None) -
             speak(prompt)
 
         text = _listen_text_or_none(
-            timeout_ms=settings.command_timeout_ms, stage=stage, play_beep=True
+            timeout_ms=settings.command_timeout_ms, stage=stage, play_beep=play_beep
         )
         if text is None:
             make_sound(Sound.DONE)

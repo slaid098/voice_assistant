@@ -8,6 +8,7 @@ from loguru import logger
 
 from voice_assistant.assistant import run_assistant_step
 from voice_assistant.audio.sounds import Sound, init_sounds, make_sound, speak_with_fallback
+from voice_assistant.speech.tts import preload_piper
 
 
 def setup_logging() -> None:
@@ -45,6 +46,7 @@ def main() -> None:
     sys.excepthook = _crash_handler
 
     init_sounds()
+    preload_piper()
     make_sound(Sound.STARTUP)
 
     print("=== Голосовой помощник запущен ===")

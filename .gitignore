@@ -18,5 +18,5 @@ htmlcov/
 .ruff_cache/
 
 # Piper voice models (downloaded in release workflow, not committed)
-src/voice_assistant/assets/voices/*.onnx
-src/voice_assistant/assets/voices/*.onnx.json
+src/voice_assistant/assets/sounds/voices/*.onnx
+src/voice_assistant/assets/sounds/voices/*.onnx.json
