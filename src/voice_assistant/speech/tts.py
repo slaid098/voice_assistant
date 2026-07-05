@@ -35,14 +35,14 @@ def speak(text: str, *, on_all_fail: Callable[[], None] | None = None) -> None:
             audio_bytes = provider.synthesize(text)
         except Exception as ex:
             logger.bind(error=ex, provider=type(provider).__name__).warning(
-                "TTS provider failed, trying next"
+                "TTS-провайдер недоступен, пробую следующий"
             )
             continue
         else:
             _play_bytes(audio_bytes)
             return
 
-    logger.error("All TTS providers failed")
+    logger.error("Все TTS-провайдеры недоступны")
     if on_all_fail is not None:
         on_all_fail()
 
@@ -67,7 +67,7 @@ def _play_file(path: str) -> None:
         while pygame.mixer.get_busy():
             pygame.time.wait(50)
     except Exception as ex:
-        logger.bind(error=ex).warning("Sound file playback failed")
+        logger.bind(error=ex).warning("Не удалось воспроизвести аудиофайл")
 
 
 @contextmanager

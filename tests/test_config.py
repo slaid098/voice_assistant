@@ -12,7 +12,7 @@ def test_settings_defaults():
     assert s.samplerate == 16000
     assert s.vad_threshold == 200.0
     assert s.youtube_search_limit == 10
-    assert s.weather_default_city == "Гомель"
+    assert s.weather_default_city == "Костюковка"
     assert s.openweather_api_key == ""
 
 

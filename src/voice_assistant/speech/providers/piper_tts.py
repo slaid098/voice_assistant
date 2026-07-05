@@ -41,7 +41,7 @@ class _VoiceState:
         self._load_attempted = True
 
         if not _VOICE_MODEL.exists() or not _VOICE_CONFIG.exists():
-            logger.warning("Piper voice model not found, offline TTS unavailable")
+            logger.warning("Модель Piper не найдена, офлайн-TTS недоступен")
             return None
 
         try:
@@ -52,9 +52,9 @@ class _VoiceState:
                 "PiperVoiceProtocol",
                 PiperVoice.load(str(_VOICE_MODEL), config_path=str(_VOICE_CONFIG)),
             )
-            logger.info("Piper voice model loaded (offline TTS ready)")
+            logger.info("Модель Piper загружена (офлайн-TTS готов)")
         except Exception as ex:
-            logger.bind(error=ex).warning("Failed to load Piper voice model")
+            logger.bind(error=ex).warning("Не удалось загрузить модель Piper")
 
         return self._voice
 
