@@ -31,9 +31,11 @@ jobs:
       - name: Download Piper voice model
         shell: pwsh
         run: |
+          $dir = "src/voice_assistant/assets/voices"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
           $base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium"
-          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile src/voice_assistant/assets/voices/ru_RU-irina-medium.onnx
-          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile src/voice_assistant/assets/voices/ru_RU-irina-medium.onnx.json
+          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile "$dir/ru_RU-irina-medium.onnx"
+          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile "$dir/ru_RU-irina-medium.onnx.json"
 
       - name: Build with PyInstaller
         shell: pwsh
