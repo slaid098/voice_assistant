@@ -138,3 +138,105 @@ def test_wake_timeout_no_sound(monkeypatch, mock_speak, mock_make_sound):
 
     mock_speak.assert_not_called()
     mock_make_sound.assert_not_called()
+
+
+def test_vosk_wake_word_triggers_command(monkeypatch, mock_speak, mock_make_sound):
+    """Vosk wake-word streaming: детектор детектит «вики» → команда → ответ.
+
+    Проверка: при WAKE_WORD_DETECTOR=vosk ассистент использует streaming-путь,
+    не обращаясь к Google для wake word. Команда идёт через Google (дефолт).
+    """
+    import voice_assistant.assistant as a_mod
+    import voice_assistant.speech.audio as audio_mod
+
+    fake_detector = type(
+        "FakeVoskDetector",
+        (),
+        {
+            "name": "vosk",
+            "detect_chunk": lambda self, chunk: "вики" if chunk[0] == 0 else None,
+            "is_available": lambda self: True,
+        },
+    )()
+    monkeypatch.setattr(a_mod, "active_wake_word_detector", lambda: fake_detector)
+
+    def fake_record(timeout_ms, *, on_chunk=None):
+        if on_chunk is not None:
+            import numpy as np
+
+            chunk = np.zeros(1600, dtype=np.int16)
+            on_chunk(chunk)
+            return None
+        return _fake_audio()
+
+    monkeypatch.setattr(audio_mod, "record_user_speech", fake_record)
+    monkeypatch.setattr(a_mod, "record_user_speech", fake_record)
+    transcribe_responses = iter(["погода"])
+    monkeypatch.setattr(a_mod, "transcribe_audio", lambda audio: next(transcribe_responses))
+    monkeypatch.setattr(a_mod, "drain_speech_queue", lambda: None)
+
+    import voice_assistant.nlu.handlers as h_mod
+
+    monkeypatch.setattr(h_mod, "get_weather_text", lambda city: "Гомель, плюс 15.")
+
+    a_mod.run_assistant_step()
+
+    speak_texts = [c.args[0] for c in mock_speak.call_args_list]
+    assert "Слушаю." in speak_texts
+    assert "Выполняю." in speak_texts
+    assert "Гомель, плюс 15." in speak_texts
+
+
+def test_vosk_wake_word_timeout_no_command(monkeypatch, mock_speak, mock_make_sound):
+    """Vosk wake-word: детектор не сработал → выход без команды."""
+    import voice_assistant.assistant as a_mod
+    import voice_assistant.speech.audio as audio_mod
+
+    fake_detector = type(
+        "FakeVoskDetector",
+        (),
+        {
+            "name": "vosk",
+            "detect_chunk": lambda self, chunk: None,
+            "is_available": lambda self: True,
+        },
+    )()
+    monkeypatch.setattr(a_mod, "active_wake_word_detector", lambda: fake_detector)
+
+    def fake_record(timeout_ms, *, on_chunk=None):
+        import numpy as np
+
+        chunk = np.zeros(1600, dtype=np.int16)
+        if on_chunk is not None:
+            on_chunk(chunk)
+
+    monkeypatch.setattr(audio_mod, "record_user_speech", fake_record)
+    monkeypatch.setattr(a_mod, "record_user_speech", fake_record)
+    monkeypatch.setattr(a_mod, "drain_speech_queue", lambda: None)
+
+    a_mod.run_assistant_step()
+
+    mock_speak.assert_not_called()
+    mock_make_sound.assert_not_called()
+
+
+def test_fallback_to_fuzzy_when_vosk_unavailable(monkeypatch, mock_speak, mock_make_sound):
+    """Vosk недоступен → авто-fallback на fuzzy+Google путь."""
+    import voice_assistant.assistant as a_mod
+
+    monkeypatch.setattr(a_mod, "active_wake_word_detector", lambda: None)
+
+    monkeypatch.setattr(a_mod, "record_user_speech", lambda **kw: _fake_audio())
+    transcribe_responses = iter(["слушай вики", "погода"])
+    monkeypatch.setattr(a_mod, "transcribe_audio", lambda audio: next(transcribe_responses))
+    monkeypatch.setattr(a_mod, "drain_speech_queue", lambda: None)
+
+    import voice_assistant.nlu.handlers as h_mod
+
+    monkeypatch.setattr(h_mod, "get_weather_text", lambda city: "Гомель, плюс 15.")
+
+    a_mod.run_assistant_step()
+
+    speak_texts = [c.args[0] for c in mock_speak.call_args_list]
+    assert "Слушаю." in speak_texts
+    assert "Выполняю." in speak_texts

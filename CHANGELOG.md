@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-07-05
+
+### Added
+- **Vosk офлайн wake-word детектор** — мгновенная реактивность слова активации.
+  Мама говорит «Вики» один раз — детектится в стриме аудио, без записи-распознания.
+  Больше не нужно повторять 5 раз.
+- **STTProvider Protocol** — зеркало TTSProvider: `is_cloud`, `transcribe`, `is_available`.
+  Google (cloud) + Vosk (local) провайдеры, dispatch по `STT_PROVIDER`.
+- **WakeWordDetector Protocol** — `detect_chunk(audio)` для стриминговых детекторов.
+  FuzzyWakeWordDetector (текстовый, Google-путь) + VoskWakeWordDetector (аудио-стрим).
+- **Vosk STT** — локальное распознавание команд (модель small-ru-0.22, ~45 МБ).
+  Мгновенно, без сети. Dispatch: `STT_PROVIDER=google|vosk|auto`.
+- **Двойная защита от ложных срабатываний** Vosk wake-word: грамматика узким
+  списком + fuzzy-порог (fuzz.ratio >= WAKE_THRESHOLD).
+- **Авто-fallback**: Vosk-модель не загрузилась → авто-откат на fuzzy+Google путь.
+- **Streaming аудио**: `record_user_speech(on_chunk=...)` — колбэк для детекторов.
+- Настройки: `WAKE_WORD_DETECTOR` (vosk, дефолт), `STT_PROVIDER` (google, дефолт),
+  `STT_LANGUAGE`, `MAX_MISUNDERSTAND`.
+
+### Changed
+- `speech/stt.py` — тонкий фасад с dispatch (раньше — прямые вызовы Google)
+- `nlu/wake_word.py` — Protocol + Fuzzy/Vosk детекторы (раньше — только текст)
+- `speech/audio.py` — `print()` → `logger.debug`, убран мёртвый дефолт `timeout_ms=6000`
+- `assistant.py` — ветвление wake word по детектору (streaming vs fuzzy)
+- `_MAX_MISUNDERSTAND` → `settings.max_misunderstand` (настраиваемый через .env)
+- Модель Vosk качается в release workflow (как Piper), упаковывается в exe
+- `pyproject.toml` — `vosk` в dependencies, mypy overrides
+
+### Fixed
+- Костыль: не было STTProvider Protocol (AGENTS.md врал про «Protocol prepared»)
+- Костыль: `STTNetworkError` захардкожен в orchestrator (теперь — в GoogleSTTProvider)
+- Костыль: wake_word.py был только текстовый (теперь — Protocol + audio-стрим)
+- `AGENTS.md:39` город «Гомель» → «Костюковка» (соответствует config.py)
+- `AGENTS.md` «Future enhancements» обновлены: Vosk/openWakeWord — Implemented
+
 ## [1.1.1] — 2026-07-05
 
 ### Fixed

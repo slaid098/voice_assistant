@@ -20,3 +20,6 @@ htmlcov/
 # Piper voice models (downloaded in release workflow, not committed)
 src/voice_assistant/assets/sounds/voices/*.onnx
 src/voice_assistant/assets/sounds/voices/*.onnx.json
+
+# Vosk models (downloaded in release workflow, not committed)
+src/voice_assistant/assets/models/vosk/vosk-model-*/

@@ -6,26 +6,30 @@ from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import settings
 from voice_assistant.nlu.handlers import execute_intent
 from voice_assistant.nlu.intent import parse_voice_intent
-from voice_assistant.nlu.wake_word import is_wake_word
+from voice_assistant.nlu.wake_word import active_wake_word_detector, is_wake_word
 from voice_assistant.services.commands import drain_speech_queue
 from voice_assistant.speech.audio import record_user_speech
 from voice_assistant.speech.stt import STTNetworkError, transcribe_audio
 from voice_assistant.speech.tts import speak
-
-_MAX_MISUNDERSTAND = 3
 
 
 def run_assistant_step() -> None:
     """Выполняет один шаг ассистента от активации до ответа."""
     drain_speech_queue()
 
-    print("\n--- Ожидание активации... ---")
-    activation_text = _listen_text_or_none(
-        timeout_ms=settings.wake_timeout_ms, stage="activation", play_beep=False
-    )
+    logger.debug("--- Ожидание активации... ---")
+    detector = active_wake_word_detector()
+
+    if detector is not None and detector.name != "fuzzy":
+        activation_text = _listen_for_wake_word_streaming(detector)
+    else:
+        activation_text = _listen_text_or_none(
+            timeout_ms=settings.wake_timeout_ms, stage="activation", play_beep=False
+        )
+
     if not activation_text:
         return
-    if not is_wake_word(activation_text):
+    if (detector is None or detector.name == "fuzzy") and not is_wake_word(activation_text):
         return
 
     speak("Слушаю.")
@@ -40,10 +44,30 @@ def run_assistant_step() -> None:
     )
 
 
+def _listen_for_wake_word_streaming(detector: Any) -> str | None:
+    """Стримит чанки аудио в детектор wake word (Vosk).
+
+    Записывает аудио, параллельно питая детектор чанками. При детекции —
+    возвращает распознанное слово (без обращения к Google). При таймауте — None.
+    """
+    detected: list[str | None] = [None]
+
+    def on_chunk(chunk: Any) -> None:
+        word = detector.detect_chunk(chunk)
+        if word is not None:
+            detected[0] = word
+
+    record_user_speech(timeout_ms=settings.wake_timeout_ms, on_chunk=on_chunk)
+
+    if detected[0] is not None:
+        logger.info(f"[wake word детектировано] {detected[0]}")
+    return detected[0]
+
+
 def _listen_intent_after_activation() -> dict[str, Any] | None:
     """Слушает команды после активации, пока не получит валидный интент.
 
-    Лимит попыток: после _MAX_MISUNDERSTAND непониманий — выход в режим ожидания.
+    Лимит попыток: после max_misunderstand непониманий — выход в режим ожидания.
     При таймауте (молчание) — один бип DONE и выход в режим ожидания wake word.
     """
     attempts = 0
@@ -62,7 +86,7 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
             return intent
 
         attempts += 1
-        if attempts >= _MAX_MISUNDERSTAND:
+        if attempts >= settings.max_misunderstand:
             make_sound(Sound.DONE)
             speak("Не получается. Скажите слово активации снова.")
             return None

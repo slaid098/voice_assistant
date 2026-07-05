@@ -1,25 +1,41 @@
+from collections.abc import Callable
+
 import numpy as np
 import sounddevice as sd
+from loguru import logger
 
 from voice_assistant.config import settings
 
 
-def record_user_speech(timeout_ms: int = 6000) -> np.ndarray | None:
+def record_user_speech(
+    timeout_ms: int, *, on_chunk: Callable[[np.ndarray], None] | None = None
+) -> np.ndarray | None:
     """Записывает речь с микрофона до silence_limit_ms тишины.
 
-    Если речь не началась в течение timeout_ms — возвращает None.
+    Если задан on_chunk — каждый чанк передаётся в колбэк параллельно с VAD.
+    Нужно для стриминговых детекторов (Vosk wake word, openWakeWord).
+
+    Args:
+        timeout_ms: Максимум ожидания начала речи (мс). При таймауте — None.
+        on_chunk: Колбэк для стриминговых детекторов (необязательно).
+
+    Returns:
+        Аудио-массив или None при таймауте (молчание).
     """
     chunk_size = int(settings.chunk_ms * settings.samplerate / 1000)
-    buffer = []
+    buffer: list[np.ndarray] = []
     silence_ms = 0
     total_elapsed_ms = 0
     active_speech_started = False
 
-    print("[запись] Слушаю...")
+    logger.debug("[запись] Слушаю...")
     with sd.InputStream(samplerate=settings.samplerate, channels=1, dtype="int16") as stream:
         while True:
             chunk, _ = stream.read(chunk_size)
             chunk = chunk.flatten()
+
+            if on_chunk is not None:
+                on_chunk(chunk)
 
             is_voice_detected = _is_voice(chunk)
 
@@ -35,10 +51,10 @@ def record_user_speech(timeout_ms: int = 6000) -> np.ndarray | None:
             else:
                 total_elapsed_ms += settings.chunk_ms
                 if total_elapsed_ms >= timeout_ms:
-                    print("[запись] Время ожидания истекло (тишина).")
+                    logger.debug("[запись] Время ожидания истекло (тишина).")
                     return None
 
-    print("[запись] Запись завершена.")
+    logger.debug("[запись] Запись завершена.")
     return np.concatenate(buffer) if buffer else None
 
 

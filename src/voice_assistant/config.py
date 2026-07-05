@@ -41,6 +41,10 @@ class Settings:
     weather_default_city: str
     tts_provider: str
     tts_cache_size: int
+    stt_provider: str
+    stt_language: str
+    wake_word_detector: str
+    max_misunderstand: int
     wake_aliases: list[str]
     junk_words: list[str]
     cmd_junk: list[str]
@@ -79,6 +83,10 @@ def _load_settings() -> Settings:
         weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Костюковка").strip(),
         tts_provider=os.getenv("TTS_PROVIDER", "google").strip().lower(),
         tts_cache_size=int(os.getenv("TTS_CACHE_SIZE", "50")),
+        stt_provider=os.getenv("STT_PROVIDER", "google").strip().lower(),
+        stt_language=os.getenv("STT_LANGUAGE", "ru-RU").strip(),
+        wake_word_detector=os.getenv("WAKE_WORD_DETECTOR", "vosk").strip().lower(),
+        max_misunderstand=int(os.getenv("MAX_MISUNDERSTAND", "3")),
         wake_aliases=wake_aliases,
         junk_words=[
             "пожалуйста",
