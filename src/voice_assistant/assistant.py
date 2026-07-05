@@ -1,6 +1,6 @@
 from loguru import logger
 
-from voice_assistant.config import COMMAND_TIMEOUT_MS, WAKE_TIMEOUT_MS
+from voice_assistant.config import settings
 from voice_assistant.nlu.intent import parse_voice_intent
 from voice_assistant.nlu.wake_word import is_wake_word
 from voice_assistant.services.browser import open_browser_url
@@ -14,7 +14,9 @@ from voice_assistant.speech.tts import speak
 
 def run_assistant_step() -> None:
     print("\n--- Ожидание активации... ---")
-    activation_text = _listen_text_or_none(timeout_ms=WAKE_TIMEOUT_MS, stage="activation")
+    activation_text = _listen_text_or_none(
+        timeout_ms=settings.wake_timeout_ms, stage="activation"
+    )
     if not activation_text:
         return
     if not is_wake_word(activation_text):
@@ -69,7 +71,7 @@ def _record_and_transcribe_with_retries(stage: str, prompt: str | None = None) -
         if prompt:
             speak(prompt)
 
-        text = _listen_text_or_none(timeout_ms=COMMAND_TIMEOUT_MS, stage=stage)
+        text = _listen_text_or_none(timeout_ms=settings.command_timeout_ms, stage=stage)
         if text is None:
             speak("Ушла спать.")
             return None
@@ -120,7 +122,9 @@ def _run_youtube_pagination(videos: list[dict], query: str) -> None:
 
 
 def _build_video_prompt(query: str, title: str, index: int) -> str:
-    num_word = _number_to_russian_ordinal(index + 1)
+    from num2words import num2words
+
+    num_word = num2words(index + 1, lang="ru")
     if index == 0:
         return (
             f"Вот что я нашла по запросу {query}. "
@@ -173,9 +177,3 @@ def _parse_pagination_response(text: str) -> str:
             return "stop"
 
     return "unknown"
-
-
-def _number_to_russian_ordinal(num: int) -> str:
-    from num2words import num2words
-
-    return num2words(num, lang="ru")

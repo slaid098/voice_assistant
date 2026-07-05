@@ -2,7 +2,7 @@ import re
 
 from yt_dlp import YoutubeDL
 
-from voice_assistant.config import YOUTUBE_SEARCH_LIMIT
+from voice_assistant.config import settings
 
 _YTDL_OPTS = {"extract_flat": True, "quiet": True, "no_warnings": True, "simulate": True}
 
@@ -18,7 +18,9 @@ def search_youtube_videos(query: str) -> list[dict]:
     """
     try:
         with YoutubeDL(_YTDL_OPTS) as ydl:
-            info = ydl.extract_info(f"ytsearch{YOUTUBE_SEARCH_LIMIT}:{query}", download=False)
+            info = ydl.extract_info(
+                f"ytsearch{settings.youtube_search_limit}:{query}", download=False
+            )
         entries = info.get("entries", []) if info else []
         return [_format_entry(e) for e in entries if isinstance(e, dict)]
     except Exception:

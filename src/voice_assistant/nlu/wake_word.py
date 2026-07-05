@@ -1,6 +1,6 @@
 from thefuzz import fuzz
 
-from voice_assistant.config import WAKE_ALIASES, WAKE_THRESHOLD, WAKE_WORD
+from voice_assistant.config import settings
 
 
 def is_wake_word(text: str) -> bool:
@@ -16,25 +16,19 @@ def is_wake_word(text: str) -> bool:
         return False
 
     words = text.lower().strip().split()
-    for word in words:
-        if _matches_wake_word(word):
-            return True
-    return False
+    return any(_matches_wake_word(word) for word in words)
 
 
 def _matches_wake_word(word: str) -> bool:
     """Проверяет одно слово против wake word и алиасов."""
-    if WAKE_WORD in word:
+    if settings.wake_word in word:
         return True
 
-    for alias in WAKE_ALIASES:
+    for alias in settings.wake_aliases:
         if alias in word:
             return True
-        if fuzz.ratio(alias, word) >= WAKE_THRESHOLD:
+        if fuzz.ratio(alias, word) >= settings.wake_threshold:
             return True
 
-    root = WAKE_WORD[:3] if len(WAKE_WORD) >= 3 else WAKE_WORD
-    if root in word:
-        return True
-
-    return False
+    root = settings.wake_word[:3] if len(settings.wake_word) >= 3 else settings.wake_word
+    return root in word
