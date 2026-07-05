@@ -37,6 +37,17 @@ jobs:
           Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile "$dir/ru_RU-irina-medium.onnx"
           Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile "$dir/ru_RU-irina-medium.onnx.json"
 
+      - name: Download Vosk model (small-ru)
+        shell: pwsh
+        run: |
+          $dir = "src/voice_assistant/assets/models/vosk"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $url = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
+          $zip = "$dir/vosk-model-small-ru-0.22.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          Remove-Item $zip
+
       - name: Build with PyInstaller
         shell: pwsh
         run: |
@@ -44,6 +55,7 @@ jobs:
             --name voice-assistant `
             --collect-data voice_assistant `
             --collect-all piper `
+            --collect-all vosk `
             src/voice_assistant/__main__.py
 
       - name: Package release

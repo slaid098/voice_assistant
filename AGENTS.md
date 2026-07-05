@@ -9,33 +9,42 @@
 ## Project: Voice Assistant
 
 Voice assistant for visually impaired users. Russian language. Google STT + gTTS.
+Vosk for local wake-word detection (instant, offline).
 
 ### Architecture
 - `src/voice_assistant/` — package (src/ layout)
-- `cli.py` — entry point, logging, excepthook, startup sound
+- `cli.py` — entry point, logging, excepthook, startup sound (after full init)
 - `assistant.py` — orchestrator (thin: wake → listen → intent → execute)
 - `config.py` — `Settings` frozen dataclass, `Intent` StrEnum, `IntentRule` dataclass
 - `audio/sounds.py` — 4 earcons (mp3) via pygame.mixer, `@with_sound_effects`
-- `speech/` — `audio.py` (VAD), `stt.py` (Google), `tts.py` (gTTS/Piper + pygame), `mixer.py`, `providers/` (base, google_tts, piper_tts)
-- `nlu/` — `wake_word.py` (fuzzy), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
+- `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Piper + pygame), `mixer.py`
+  - `providers/stt/` — `base.py` (STTProvider Protocol), `google_stt.py`, `vosk_stt.py`
+  - `providers/` — `base.py` (TTSProvider Protocol), `google_tts.py`, `piper_tts.py`
+- `nlu/` — `wake_word.py` (WakeWordDetector Protocol + Fuzzy/Vosk detectors), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
 - `services/` — `browser.py`, `commands.py`, `weather.py`, `youtube.py`, `youtube_flow.py`
 - `assets/sounds/` — единая папка аудио-ассетов:
   - `earcons/{1,2,3,4}.mp3` — звуковые ярлыки (бипы)
   - `phrases/*.mp3` + `manifest.json` — предгенерированные фразы через Google TTS
   - `voices/ru_RU-irina-medium.onnx(.json)` — модель Piper (офлайн TTS, fallback)
+- `assets/models/vosk/vosk-model-small-ru-0.22/` — модель Vosk (офлайн STT + wake word, ~45MB)
 - `scripts/` — `gen_phrases.py` (предгенерация фраз), `install_autorun.bat` / `remove_autorun.bat` (автозагрузка Windows)
 
 ### Sound triggers
-- `Sound.STARTUP` (3) — once at boot
-- `Sound.READY_TO_LISTEN` (1) — before each VAD recording + wake word
+- `Sound.STARTUP` (3) — once at boot (after full init, before listening loop)
+- `Sound.READY_TO_LISTEN` (1) — before each VAD recording (not on wake word with Vosk)
 - `Sound.SEARCH_STARTED` (2) — YouTube query accepted
-- `Sound.DONE` (4) — after command execution / error / not understood
+- `Sound.DONE` (4) — after command execution / error / timeout (single, on top level)
 
 ### Configuration (.env)
 - `WAKE_WORD` — activation word (default: "вики")
+- `WAKE_ALIASES` — comma-separated aliases for fuzzy matching
 - `WAKE_THRESHOLD` — fuzzy match threshold (default: 70)
+- `WAKE_WORD_DETECTOR` — wake word engine: `vosk` / `fuzzy` (default: `vosk`)
+- `STT_PROVIDER` — command recognition: `google` / `vosk` / `auto` (default: `google`)
+- `STT_LANGUAGE` — Google STT language (default: `ru-RU`)
+- `MAX_MISUNDERSTAND` — max consecutive misunderstandings (default: 3)
 - `OPENWEATHER_API_KEY` — weather API key
-- `WEATHER_DEFAULT_CITY` — default city (default: "Гомель")
+- `WEATHER_DEFAULT_CITY` — default city (default: "Костюковка")
 - `YOUTUBE_SEARCH_LIMIT` — search results count (default: 10)
 - `TTS_PROVIDER` — TTS engine: `google` / `piper` / `auto` (default: `google`)
 - `TTS_CACHE_SIZE` — LRU cache size for dynamic phrases (default: 50)
@@ -49,12 +58,18 @@ Voice assistant for visually impaired users. Russian language. Google STT + gTTS
 - ruff strict (12 rule groups), mypy strict, pytest-cov 75%, xenon
 - Pre-commit: ruff + mypy
 - CI: lint → typecheck → test (matrix 3.12/3.13/3.14) → complexity
-- Release: tag `v*` → Windows PyInstaller → zip with sounds
+- Release: tag `v*` → Windows PyInstaller → zip with sounds + models + .bat
+
+### Implemented providers
+- **STT**: Google (cloud, online) + Vosk (local, offline) — STTProvider Protocol, dispatch by STT_PROVIDER
+- **TTS**: Google (cloud) + Piper (local) — TTSProvider Protocol, dispatch by TTS_PROVIDER
+- **Wake word**: Vosk (local, grammar + fuzzy threshold) + Fuzzy (text, Google path) — WakeWordDetector Protocol
+- Auto-fallback: Vosk model not loaded → fuzzy+Google path (user doesn't notice)
 
 ### Future enhancements (architecture prepared, not implemented)
-- Offline STT: Vosk / whisper.cpp / openWakeWord (Protocol: `speech/stt.py`)
 - Offline TTS: Silero / RHVoice (Protocol: `speech/tts.py`)
-- Keyword spotting: openWakeWord (Protocol: `nlu/wake_word.py`)
+- Keyword spotting: openWakeWord as new WakeWordDetector (Protocol ready in `nlu/wake_word.py`)
+- Whisper.cpp as new STTProvider (Protocol ready in `speech/providers/stt/base.py`)
 
 ### Commands
 ```bash
