@@ -13,12 +13,6 @@ from voice_assistant.config import settings
 _MODEL_DIR: Path = Path(str(files("voice_assistant") / "assets" / "models" / "vosk"))
 
 
-class VoskModelProtocol(Protocol):
-    """Скрытый тип Model из vosk."""
-
-    def recognizer(self, sample_rate: float, grammar: str | None = None) -> object: ...
-
-
 class VoskRecognizerProtocol(Protocol):
     """Скрытый тип KaldiRecognizer из vosk."""
 
@@ -33,10 +27,10 @@ class _ModelState:
     """Лениво загружает и хранит модель Vosk."""
 
     def __init__(self) -> None:
-        self._model: VoskModelProtocol | None = None
+        self._model: object | None = None
         self._load_attempted = False
 
-    def get(self) -> VoskModelProtocol | None:
+    def get(self) -> object | None:
         """Возвращает модель, загружая при первом обращении."""
         if self._model is not None or self._load_attempted:
             return self._model
@@ -50,12 +44,39 @@ class _ModelState:
         try:
             from vosk import Model  # noqa: PLC0415 — optional dependency
 
-            self._model = cast("VoskModelProtocol", Model(str(model_path)))
+            self._model = Model(str(model_path))
             logger.info(f"Модель Vosk загружена (офлайн-STT готов): {model_path}")
         except Exception as ex:
             logger.bind(error=ex).warning("Не удалось загрузить модель Vosk")
 
         return self._model
+
+
+def create_recognizer(grammar: str | None = None) -> VoskRecognizerProtocol | None:
+    """Создаёт KaldiRecognizer из загруженной модели.
+
+    Args:
+        grammar: JSON-грамматика для ограничения словаря (None = полный словарь).
+
+    Returns:
+        KaldiRecognizer или None, если модель не загружена.
+    """
+    model = _state.get()
+    if model is None:
+        return None
+
+    try:
+        from vosk import KaldiRecognizer  # noqa: PLC0415 — optional dependency
+
+        if grammar is not None:
+            return cast(
+                "VoskRecognizerProtocol",
+                KaldiRecognizer(model, settings.samplerate, grammar),
+            )
+        return cast("VoskRecognizerProtocol", KaldiRecognizer(model, settings.samplerate))
+    except Exception as ex:
+        logger.bind(error=ex).warning("Не удалось создать KaldiRecognizer")
+        return None
 
 
 def _find_model_dir() -> Path | None:
@@ -90,12 +111,11 @@ class VoskSTTProvider:
         Returns:
             Текст в нижнем регистре или None при тишине (не распознано).
         """
-        model = _state.get()
-        if model is None:
+        recognizer = create_recognizer()
+        if recognizer is None:
             raise RuntimeError("Vosk model not loaded")
 
         wav_bytes = _to_wav_bytes(audio)
-        recognizer = cast("VoskRecognizerProtocol", model.recognizer(settings.samplerate))
 
         chunk_size = 4000
         text = ""
