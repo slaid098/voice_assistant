@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import io
+import re
 import wave
 from pathlib import Path
 from typing import Protocol, cast
@@ -21,6 +22,9 @@ from voice_assistant.config import settings
 from voice_assistant.speech.model_loader import vosk_tts_model_path
 
 _SAMPLE_RATE = 22050
+
+_SAFE_CHARS = re.compile(r"[^а-яёА-ЯЁ\s.,!?;:\-]")
+_COLLAPSE_SPACES = re.compile(r"\s+")
 
 
 class VoskTTSModelProtocol(Protocol):
@@ -99,8 +103,12 @@ class VoskTTSProvider:
     def synthesize(self, text: str) -> bytes:
         """Синтезирует текст через Vosk TTS, возвращает WAV-байты.
 
+        Vosk TTS G2P падает на любых не-кириллических символах (китайские
+        иероглифы, подчёркивания, эмодзи-обрывки из YouTube-заголовков).
+        Дополнительная санитизация: оставить только кириллицу и пунктуацию.
+
         Args:
-            text: Текст для озвучки.
+            text: Текст для озвучки (уже нормализованный normalize_for_tts).
 
         Returns:
             WAV-байты (16-bit PCM, mono, 22050 Hz).
@@ -112,6 +120,7 @@ class VoskTTSProvider:
         if synth is None:
             raise RuntimeError("Vosk TTS model not loaded")
 
+        text = _sanitize_for_vosk(text)
         audio = synth.synth_audio(text, speaker_id=settings.vosk_tts_speaker)
         audio_bytes = _to_wav_bytes(audio)
 
@@ -124,6 +133,16 @@ class VoskTTSProvider:
     def fixed_phrase(self, text: str) -> bytes | None:
         """Локальный провайдер не использует предгенерированные фразы."""
         return None
+
+
+def _sanitize_for_vosk(text: str) -> str:
+    """Оставляет только кириллицу, пробелы и базовую пунктуацию.
+
+    Vosk TTS G2P падает на не-кириллических символах, которые могут выжить
+    после normalize_for_tts() (китайские иероглифы, подчёркивания, эмодзи).
+    """
+    text = _SAFE_CHARS.sub(" ", text)
+    return _COLLAPSE_SPACES.sub(" ", text).strip()
 
 
 def _to_wav_bytes(audio: object) -> bytes:

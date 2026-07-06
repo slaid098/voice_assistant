@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] — 2026-07-07
+
+### Fixed
+- **Vosk TTS краш на не-кириллических символах.** YouTube-заголовки могут
+  содержать китайские иероглифы, подчёркивания, эмодзи-обрывки, которые
+  выживали после `clean_title()` и `normalize_for_tts()` и крашили G2P Vosk TTS.
+  Добавлена санитизация в `VoskTTSProvider.synthesize()`: только кириллица
+  и пунктуация. Применяется только к Vosk TTS — Google и Piper получают
+  нормальный текст.
+- **Детальное логирование TTS-ошибок.** Теперь лог показывает текст (первые
+  80 символов) и ошибку: «TTS vosk упал на тексте: '...'. Ошибка: ...»
+
 ## [1.3.1] — 2026-07-07
 
 ### Fixed
