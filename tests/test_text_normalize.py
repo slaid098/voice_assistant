@@ -55,6 +55,16 @@ class TestNormalizeForTts:
         assert "ютуб" in normalize_for_tts("Открой youtube")
         assert "ютуб" in normalize_for_tts("Открой YouTuBe")
 
+    def test_brand_tiktok_no_typo(self):
+        result = normalize_for_tts("TikTok тренд")
+        assert "тикток" in result
+        assert "тикок" not in result
+
+    def test_brand_openai_pronunciation(self):
+        result = normalize_for_tts("OpenAI")
+        assert "ай" in result
+        assert "аи" not in result
+
 
 class TestCleanTitle:
     def test_strips_brackets(self):

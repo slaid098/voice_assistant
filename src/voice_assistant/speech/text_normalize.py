@@ -30,11 +30,11 @@ _BRANDS: dict[str, str] = {
     "facebook": "фейсбук",
     "instagram": "инстаграм",
     "telegram": "телеграм",
-    "tiktok": "тикок",
+    "tiktok": "тикток",
     "netflix": "нетфликс",
     "spotify": "спотифай",
     "github": "гитхаб",
-    "openai": "опен аи",
+    "openai": "опен ай",
     "chatgpt": "чат гпт",
     "microsoft": "майкрософт",
     "windows": "виндоус",
@@ -42,7 +42,6 @@ _BRANDS: dict[str, str] = {
     "samsung": "самсунг",
     "apple": "эпл",
     "twitter": "твиттер",
-    "x (twitter)": "икс твиттер",
 }
 
 _BRAND_PATTERN = re.compile(

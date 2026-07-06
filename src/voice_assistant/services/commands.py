@@ -58,21 +58,6 @@ _DAYS_ORDINAL_NEUTER = [
 
 _FEMININE_NUMBERS: dict[str, str] = {"один": "одна", "два": "две"}
 
-
-def _num2words_feminine(n: int) -> str:
-    """Число в женском роде (для слов «минута», «секунда»).
-
-    num2words всегда возвращает мужской род («один», «два»). Для минут нужна
-    женская форма («одна минута», «две минуты»).
-    """
-    word = str(num2words(n, lang="ru"))
-    parts = word.rsplit(" ", 1)
-    if len(parts) == 2:
-        prefix, last = parts
-        return f"{prefix} {_FEMININE_NUMBERS.get(last, last)}"
-    return _FEMININE_NUMBERS.get(word, word)
-
-
 _speech_queue: queue.Queue[str] = queue.Queue()
 
 
@@ -142,6 +127,20 @@ def _get_time_text() -> str:
         minutes_word = _plural(now.minute, ("минута", "минуты", "минут"))
         time_str += f" {_num2words_feminine(now.minute)} {minutes_word}"
     return f"Сегодня {day} {month}, {time_str}"
+
+
+def _num2words_feminine(n: int) -> str:
+    """Число в женском роде (для слов «минута», «секунда»).
+
+    num2words всегда возвращает мужской род («один», «два»). Для минут нужна
+    женская форма («одна минута», «две минуты»).
+    """
+    word = str(num2words(n, lang="ru"))
+    parts = word.rsplit(" ", 1)
+    if len(parts) == 2:
+        prefix, last = parts
+        return f"{prefix} {_FEMININE_NUMBERS.get(last, last)}"
+    return _FEMININE_NUMBERS.get(word, word)
 
 
 def _handle_timer(payload: str | None) -> None:
