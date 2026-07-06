@@ -25,12 +25,10 @@ Vosk for local wake-word detection (instant, offline).
 - `assets/sounds/` — единая папка аудио-ассетов:
   - `earcons/{1,2,3,4}.mp3` — звуковые ярлыки (бипы)
   - `phrases/*.mp3` + `manifest.json` — предгенерированные фразы через Google TTS
-  - `voices/ru_RU-irina-medium.onnx(.json)` — модель Piper (офлайн TTS, fallback)
-- `assets/models/vosk/vosk-model-small-ru-0.22/` — модель Vosk (офлайн STT + wake word, ~45MB)
 - `scripts/` — `gen_phrases.py` (предгенерация фраз), `install_autorun.bat` / `remove_autorun.bat` (автозагрузка Windows)
 
 ### Sound triggers
-- `Sound.STARTUP` (3) — once at boot (after full init: Piper + Vosk loaded, before listening loop)
+- `Sound.STARTUP` (3) — once at boot (after full init: Piper + Vosk STT + Vosk TTS loaded, before listening loop)
 - `Sound.READY_TO_LISTEN` (1) — before each VAD recording (not on wake word with Vosk)
 - `Sound.SEARCH_STARTED` (2) — YouTube query accepted
 - `Sound.DONE` (4) — after command execution / error / timeout (single, on top level)
@@ -52,8 +50,12 @@ Vosk for local wake-word detection (instant, offline).
 - `OPENWEATHER_API_KEY` — weather API key
 - `WEATHER_DEFAULT_CITY` — default city (default: "Костюковка")
 - `YOUTUBE_SEARCH_LIMIT` — search results count (default: 10)
-- `TTS_PROVIDER` — TTS engine: `google` / `piper` / `auto` (default: `google`)
+- `TTS_PROVIDER` — TTS engine: `google` / `piper` / `vosk` / `auto` (default: `google`)
 - `TTS_CACHE_SIZE` — LRU cache size for dynamic phrases (default: 50)
+- `PIPER_MODEL` — Piper model filename (default: `ru_RU-irina-medium.onnx`)
+- `VOSK_STT_MODEL` — Vosk STT model dir (default: `vosk-model-small-ru-0.22`)
+- `VOSK_TTS_MODEL` — Vosk TTS model dir (default: `vosk-model-tts-ru-0.7-multi`)
+- `VOSK_TTS_SPEAKER` — Vosk TTS speaker ID 0-4 (default: 2 = Irina)
 - `SILENCE_LIMIT_MS` — silence to end speech (default: 1800)
 - `CHUNK_MS` — VAD chunk size (default: 100)
 - `VAD_THRESHOLD` — voice detection RMS threshold (default: 200.0)
@@ -68,9 +70,16 @@ Vosk for local wake-word detection (instant, offline).
 
 ### Implemented providers
 - **STT**: Google (cloud, online) + Vosk (local, offline) — STTProvider Protocol, dispatch by STT_PROVIDER
-- **TTS**: Google (cloud) + Piper (local) — TTSProvider Protocol, dispatch by TTS_PROVIDER
+- **TTS**: Google (cloud) + Piper (local, ONNX) + Vosk TTS (local, ONNX) — TTSProvider Protocol, dispatch by TTS_PROVIDER
 - **Wake word**: Vosk (local, grammar + fuzzy threshold) + Fuzzy (text, Google path) — WakeWordDetector Protocol
 - Auto-fallback: Vosk model not loaded → fuzzy+Google path (user doesn't notice)
+
+### Models (separate folder, not in exe)
+- `models/piper/` — Piper TTS model (.onnx + .json, ~60MB)
+- `models/vosk_stt/` — Vosk STT + wake word model (~45MB)
+- `models/vosk_tts/` — Vosk TTS model (~135MB, 5 speakers)
+- `speech/model_loader.py` — resolves paths, auto-download fallback for Vosk TTS
+- Release ZIP includes all models; auto-download only if missing
 
 ### Future enhancements (architecture prepared, not implemented)
 - Offline TTS: Silero / RHVoice (Protocol: `speech/tts.py`)

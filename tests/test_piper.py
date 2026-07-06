@@ -16,10 +16,12 @@ def test_piper_synthesize_returns_wav(monkeypatch):
 
 def test_piper_not_available_when_model_missing(monkeypatch):
     """PiperTTSProvider returns None when model file doesn't exist."""
+    from pathlib import Path
+
     import voice_assistant.speech.providers.piper_tts as piper_mod
 
-    monkeypatch.setattr(piper_mod, "_VOICE_MODEL", piper_mod.Path("/nonexistent/model.onnx"))
-    monkeypatch.setattr(piper_mod, "_VOICE_CONFIG", piper_mod.Path("/nonexistent/model.json"))
+    monkeypatch.setattr(piper_mod, "_VOICE_MODEL", Path("/nonexistent/model.onnx"))
+    monkeypatch.setattr(piper_mod, "_VOICE_CONFIG", Path("/nonexistent/model.json"))
     monkeypatch.setattr(piper_mod._state, "_voice", None)
     monkeypatch.setattr(piper_mod._state, "_load_attempted", False)
 

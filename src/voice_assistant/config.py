@@ -49,6 +49,10 @@ class Settings:
     junk_words: list[str]
     cmd_junk: list[str]
     intent_rules: list[IntentRule]
+    piper_model: str
+    vosk_stt_model: str
+    vosk_tts_model: str
+    vosk_tts_speaker: int
 
 
 def _load_settings() -> Settings:
@@ -205,6 +209,10 @@ def _load_settings() -> Settings:
                 has_payload=False,
             ),
         ],
+        piper_model=os.getenv("PIPER_MODEL", "ru_RU-irina-medium.onnx").strip(),
+        vosk_stt_model=os.getenv("VOSK_STT_MODEL", "vosk-model-small-ru-0.22").strip(),
+        vosk_tts_model=os.getenv("VOSK_TTS_MODEL", "vosk-model-tts-ru-0.7-multi").strip(),
+        vosk_tts_speaker=int(os.getenv("VOSK_TTS_SPEAKER", "2")),
     )
 
 

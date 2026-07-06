@@ -11,6 +11,7 @@ from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 from voice_assistant.speech.providers.base import TTSProvider
 from voice_assistant.speech.providers.google_tts import google_tts
 from voice_assistant.speech.providers.piper_tts import piper_tts
+from voice_assistant.speech.providers.vosk_tts import vosk_tts
 from voice_assistant.speech.text_normalize import normalize_for_tts
 
 _dynamic_cache: OrderedDict[str, pygame.mixer.Sound] = OrderedDict()
@@ -92,10 +93,13 @@ def _active_providers() -> list[TTSProvider]:
 
     google → [google, piper] (cloud основной, local fallback)
     piper → [piper, google] (local основной, cloud fallback)
+    vosk  → [vosk, google, piper] (local основной, cloud+local fallback)
     auto  → [piper, google] (local быстрее, cloud как резерв)
     """
-    if settings.tts_provider in ("piper", "auto"):
+    if settings.tts_provider in {"piper", "auto"}:
         return [piper_tts, google_tts]
+    if settings.tts_provider == "vosk":
+        return [vosk_tts, google_tts, piper_tts]
     return [google_tts, piper_tts]
 
 

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-07-06
+
+### Added
+- **Vosk TTS провайдер** — новый офлайн TTS через Vosk (ONNX, без torch).
+  Модель `vosk-model-tts-ru-0.7-multi` (135 МБ, 5 спикеров). Спикер #2 «irina»
+  по умолчанию. `TTS_PROVIDER=vosk` в `.env`. onnxruntime — общий с Piper.
+- **Модели в отдельной папке** — `models/{piper,vosk_stt,vosk_tts}/` рядом с exe,
+  НЕ внутри. Меньше exe (~50 МБ вместо ~200 МБ). Модели можно обновлять без
+  пересборки exe.
+- **`speech/model_loader.py`** — централизованное разрешение путей к моделям.
+  Настройки `PIPER_MODEL`, `VOSK_STT_MODEL`, `VOSK_TTS_MODEL` в `.env` —
+  пользователь может поменять модель без изменения кода.
+- **Авто-скачивание Vosk TTS** — если модель отсутствует локально, библиотека
+  `vosk_tts` скачивает автоматически в `~/.cache/vosk/`. Аудио-фидбек при
+  скачивании: «Загружаю модель голоса...» → «Модель загружена.»
+- Настройка `VOSK_TTS_SPEAKER` (0-4, default 2 = Ирина).
+
+### Changed
+- **Release ZIP** теперь содержит: `exe` + `models/` + `assets/` + `.env` + `.bat`
+- `release.yml` скачивает Vosk TTS модель (135 МБ) при сборке релиза
+- `piper_tts.py` и `vosk_stt.py` — пути через `model_loader` вместо
+  `importlib.resources`
+- `tts.py:_active_providers()` — `vosk` → `[vosk_tts, google_tts, piper_tts]`
+- AGENTS.md обновлён
+
 ## [1.2.4] — 2026-07-06
 
 ### Added

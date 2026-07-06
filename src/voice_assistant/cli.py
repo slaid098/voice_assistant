@@ -8,8 +8,11 @@ from loguru import logger
 
 from voice_assistant.assistant import run_assistant_step
 from voice_assistant.audio.sounds import Sound, init_sounds, make_sound, speak_with_fallback
+from voice_assistant.config import settings
 from voice_assistant.nlu.wake_word import preload_wake_word_detector
-from voice_assistant.speech.tts import preload_piper
+from voice_assistant.speech.model_loader import ensure_vosk_tts_model
+from voice_assistant.speech.providers.vosk_tts import preload_vosk_tts
+from voice_assistant.speech.tts import preload_piper, speak
 
 
 def setup_logging() -> None:
@@ -49,6 +52,11 @@ def main() -> None:
     init_sounds()
     preload_piper(wait=True)
     preload_wake_word_detector()
+
+    if settings.tts_provider == "vosk" and not ensure_vosk_tts_model():
+        speak("Загружаю модель голоса. Это займёт около минуты.")
+        preload_vosk_tts()
+        speak("Модель загружена.")
 
     print("=== Голосовой помощник запущен ===")
     make_sound(Sound.STARTUP)

@@ -1,17 +1,15 @@
 import io
 import wave
 from collections.abc import Iterator
-from importlib.resources import files
-from pathlib import Path
 from typing import Protocol, cast
 
 from loguru import logger
 
 from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
+from voice_assistant.speech.model_loader import piper_config_path, piper_model_path
 
-_VOICE_DIR: Path = Path(str(files("voice_assistant") / "assets" / "sounds" / "voices"))
-_VOICE_MODEL = _VOICE_DIR / "ru_RU-irina-medium.onnx"
-_VOICE_CONFIG = _VOICE_DIR / "ru_RU-irina-medium.onnx.json"
+_VOICE_MODEL = piper_model_path()
+_VOICE_CONFIG = piper_config_path()
 
 
 class PiperAudioChunk(Protocol):

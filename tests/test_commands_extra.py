@@ -46,7 +46,7 @@ def test_get_time_text_format():
 
     text = _get_time_text()
     assert text.startswith("Сегодня ")
-    assert "часов" in text
+    assert any(w in text for w in ("час", "часа", "часов"))
     # Не должно быть точек и двоеточий — TTS читает их буквально как «точка»
     assert "." not in text
     assert ":" not in text
