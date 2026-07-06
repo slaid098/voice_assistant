@@ -99,11 +99,11 @@ def test_cloud_dynamic_cached_after_synth(monkeypatch):
     monkeypatch.setattr(tts_mod, "_bytes_to_sound", lambda data: mock_sound)
 
     tts_mod._dynamic_cache.clear()
-    tts_mod.speak("Гомель, плюс 15")
+    tts_mod.speak("Гомель, плюс тепло")
     assert mock_google.synthesize.call_count == 1
-    assert "Гомель, плюс 15" in tts_mod._dynamic_cache
+    assert "Гомель, плюс тепло" in tts_mod._dynamic_cache
 
-    tts_mod.speak("Гомель, плюс 15")
+    tts_mod.speak("Гомель, плюс тепло")
     assert mock_google.synthesize.call_count == 1
     tts_mod._dynamic_cache.clear()
 
@@ -117,8 +117,8 @@ def test_local_provider_not_cached(monkeypatch):
     monkeypatch.setattr(tts_mod, "_play_bytes", MagicMock())
 
     tts_mod._dynamic_cache.clear()
-    tts_mod.speak("Гомель, плюс 15")
-    tts_mod.speak("Гомель, плюс 15")
+    tts_mod.speak("Гомель, плюс тепло")
+    tts_mod.speak("Гомель, плюс тепло")
     assert mock_piper.synthesize.call_count == 2
     assert len(tts_mod._dynamic_cache) == 0
     tts_mod._dynamic_cache.clear()
