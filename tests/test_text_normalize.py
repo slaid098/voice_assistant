@@ -46,9 +46,26 @@ class TestNormalizeForTts:
         text = "Шестое июля, двадцать часов"
         assert normalize_for_tts(text) == text
 
-    def test_digits_preserved(self):
-        result = normalize_for_tts("Видео 123")
-        assert "123" in result
+    def test_digits_converted_to_words(self):
+        result = normalize_for_tts("25 градусов")
+        assert "25" not in result
+        assert "двадцать пять" in result
+
+    def test_digits_in_weather_text(self):
+        result = normalize_for_tts("Сейчас 25 градусов, влажность 93 процентов")
+        assert not any(c.isdigit() for c in result)
+        assert "двадцать пять" in result
+        assert "девяносто три" in result
+
+    def test_digits_and_brands_together(self):
+        result = normalize_for_tts("Видео номер 3 на YouTube")
+        assert "три" in result
+        assert "ютуб" in result
+        assert not any(c.isdigit() for c in result)
+
+    def test_no_digits_unchanged(self):
+        text = "Привет, как дела?"
+        assert normalize_for_tts(text) == text
 
     def test_mixed_case_brand(self):
         assert "ютуб" in normalize_for_tts("Открой YouTube")

@@ -65,7 +65,7 @@ def test_intent_enum_values():
 
 def test_intent_rules_count():
     s = _load_settings()
-    assert len(s.intent_rules) == 7
+    assert len(s.intent_rules) == 8
 
 
 def test_intent_rule_types():

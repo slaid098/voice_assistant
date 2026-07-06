@@ -15,6 +15,7 @@ class Intent(StrEnum):
     HELP = "help"
     TIMER = "timer"
     NOW_PLAYING = "now_playing"
+    SMALL_TALK = "small_talk"
     UNKNOWN = "unknown"
 
 
@@ -144,7 +145,7 @@ def _load_settings() -> Settings:
                     "прогноз погоды",
                     "сколько градусов",
                 ],
-                threshold=60,
+                threshold=65,
                 has_payload=True,
             ),
             IntentRule(
@@ -206,6 +207,20 @@ def _load_settings() -> Settings:
                     "что играет",
                 ],
                 threshold=65,
+                has_payload=False,
+            ),
+            IntentRule(
+                intent=Intent.SMALL_TALK,
+                keywords=[
+                    "как дела",
+                    "как ты",
+                    "что нового",
+                    "что нового у тебя",
+                    "как настроение",
+                    "ты тут",
+                    "ты здесь",
+                ],
+                threshold=70,
                 has_payload=False,
             ),
         ],

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] — 2026-07-07
+
+### Fixed
+- **Vosk TTS краш на цифрах.** `normalize_for_tts()` теперь конвертирует все
+  цифры в слова через `num2words` (25 → «двадцать пять»). Критично для Vosk TTS
+  — его G2P-модуль падал на цифрах. Применяется ко всем провайдерам.
+- **«Как дела» → погода.** Добавлен интент `SMALL_TALK` («как дела», «как ты»,
+  «что нового»). Порог погоды поднят с 60 до 65 — меньше ложных срабатываний.
+
 ## [1.3.0] — 2026-07-06
 
 ### Added
