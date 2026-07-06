@@ -219,3 +219,14 @@ def active_wake_word_detector() -> WakeWordDetector | None:
         logger.warning("Vosk wake-word недоступен, авто-fallback на fuzzy")
         return None
     return FuzzyWakeWordDetector()
+
+
+def preload_wake_word_detector() -> None:
+    """Предзагружает модель wake-word детектора при старте.
+
+    Для Vosk — загружает модель (1-2 сек), чтобы первый wake-word не задерживался.
+    Для fuzzy — no-op (нет модели).
+    """
+    detector = active_wake_word_detector()
+    if detector is not None:
+        logger.info(f"Wake-word детектор готов: {detector.name}")

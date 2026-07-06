@@ -45,7 +45,10 @@ def test_get_time_text_format():
     from voice_assistant.services.commands import _get_time_text
 
     text = _get_time_text()
-    assert "Сегодня" in text
-    assert "текущее время" in text
-    assert "." in text
-    assert ":" in text
+    assert text.startswith("Сегодня ")
+    assert "часов" in text
+    # Не должно быть точек и двоеточий — TTS читает их буквально как «точка»
+    assert "." not in text
+    assert ":" not in text
+    # Не должно быть цифр — num2words переводит в слова
+    assert not any(c.isdigit() for c in text)

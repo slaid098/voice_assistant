@@ -78,12 +78,12 @@ def test_search_youtube_exception(monkeypatch):
 
 
 def test_clean_title():
-    from voice_assistant.services.youtube import _clean_title
+    from voice_assistant.speech.text_normalize import clean_title
 
-    assert _clean_title("Hello [Official]") == "Hello"
-    assert _clean_title("Song (feat. X)") == "Song"
-    assert _clean_title("Emoji 🎵 Test") == "Emoji Test"
-    assert _clean_title("  spaces  ") == "spaces"
+    assert clean_title("Hello [Official]") == "Hello"
+    assert clean_title("Song (feat. X)") == "Song"
+    assert clean_title("Emoji 🎵 Test") == "Emoji Test"
+    assert clean_title("  spaces  ") == "spaces"
 
 
 def test_format_entry():

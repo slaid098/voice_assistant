@@ -1,9 +1,9 @@
-import re
 from typing import Any
 
 from yt_dlp import YoutubeDL
 
 from voice_assistant.config import settings
+from voice_assistant.speech.text_normalize import clean_title
 
 _YTDL_OPTS = {"extract_flat": True, "quiet": True, "no_warnings": True, "simulate": True}
 
@@ -31,7 +31,6 @@ def search_youtube_videos(query: str) -> list[dict[str, Any]]:
 def _format_entry(entry: dict[str, Any]) -> dict[str, str]:
     """Форматирует запись yt-dlp в простой словарь."""
     title = entry.get("title", "")
-    clean_title_str = _clean_title(title)
 
     url = (
         entry.get("url")
@@ -39,13 +38,6 @@ def _format_entry(entry: dict[str, Any]) -> dict[str, str]:
         or f"https://www.youtube.com/watch?v={entry.get('id')}"
     )
     return {
-        "title": clean_title_str,
+        "title": clean_title(title),
         "url": url,
     }
-
-
-def _clean_title(title: str) -> str:
-    """Очищает заголовок от скобок, эмодзи и мусора."""
-    title = re.sub(r"\[.*?\]|\(.*?\)|\{.*?\}", "", title)
-    title = re.sub(r"[^\w\sА-Яа-яЁё.,!?]", " ", title)
-    return re.sub(r"\s+", " ", title).strip()

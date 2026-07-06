@@ -11,12 +11,16 @@ from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 from voice_assistant.speech.providers.base import TTSProvider
 from voice_assistant.speech.providers.google_tts import google_tts
 from voice_assistant.speech.providers.piper_tts import piper_tts
+from voice_assistant.speech.text_normalize import normalize_for_tts
 
 _dynamic_cache: OrderedDict[str, pygame.mixer.Sound] = OrderedDict()
 
 
 def speak(text: str, *, on_all_fail: Callable[[], None] | None = None) -> None:
     """Озвучивает текст через активный TTS-провайдер.
+
+    Текст нормализуется (латиница → кириллица) перед синтезом, чтобы русские
+    TTS-движки корректно произносили английские слова в русских фразах.
 
     Логика по типу провайдера:
       - cloud (Google): фиксированные фразы из ассетов → LRU-кэш динамики →
@@ -29,6 +33,7 @@ def speak(text: str, *, on_all_fail: Callable[[], None] | None = None) -> None:
         on_all_fail: Callback если все провайдеры упали (например, make_sound).
     """
     _ensure_mixer()
+    text = normalize_for_tts(text)
     providers = _active_providers()
 
     if not providers:
@@ -158,8 +163,13 @@ def _play_sound(sound: pygame.mixer.Sound) -> None:
         logger.bind(error=ex).warning("Не удалось воспроизвести звук")
 
 
-def preload_piper() -> None:
-    """Предзагружает модель Piper в фоновом потоке (если провайдер активен)."""
+def preload_piper(*, wait: bool = False) -> None:
+    """Предзагружает модель Piper (если провайдер активен).
+
+    Args:
+        wait: True — блокировать до завершения загрузки (для стартового бипа).
+              False (по умолчанию) — загрузка в фоновом потоке.
+    """
     providers = _active_providers()
     if piper_tts not in providers:
         return
@@ -172,3 +182,5 @@ def preload_piper() -> None:
 
     thread = threading.Thread(target=_load, daemon=True)
     thread.start()
+    if wait:
+        thread.join()

@@ -17,7 +17,7 @@ Vosk for local wake-word detection (instant, offline).
 - `assistant.py` — orchestrator (thin: wake → listen → intent → execute)
 - `config.py` — `Settings` frozen dataclass, `Intent` StrEnum, `IntentRule` dataclass
 - `audio/sounds.py` — 4 earcons (mp3) via pygame.mixer, `@with_sound_effects`
-- `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Piper + pygame), `mixer.py`
+- `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Piper + pygame), `mixer.py`, `text_normalize.py` (транслитерация EN→RU + clean_title)
   - `providers/stt/` — `base.py` (STTProvider Protocol), `google_stt.py`, `vosk_stt.py`
   - `providers/` — `base.py` (TTSProvider Protocol), `google_tts.py`, `piper_tts.py`
 - `nlu/` — `wake_word.py` (WakeWordDetector Protocol + Fuzzy/Vosk detectors), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
@@ -30,10 +30,16 @@ Vosk for local wake-word detection (instant, offline).
 - `scripts/` — `gen_phrases.py` (предгенерация фраз), `install_autorun.bat` / `remove_autorun.bat` (автозагрузка Windows)
 
 ### Sound triggers
-- `Sound.STARTUP` (3) — once at boot (after full init, before listening loop)
+- `Sound.STARTUP` (3) — once at boot (after full init: Piper + Vosk loaded, before listening loop)
 - `Sound.READY_TO_LISTEN` (1) — before each VAD recording (not on wake word with Vosk)
 - `Sound.SEARCH_STARTED` (2) — YouTube query accepted
 - `Sound.DONE` (4) — after command execution / error / timeout (single, on top level)
+
+### Text normalization (TTS)
+- `speech/text_normalize.py` — `normalize_for_tts(text)` вызывается в `speak()` перед синтезом
+- Словарь топ-20 брендов: `YouTube→Ютуб`, `Google→Гугл`, `iPhone→Айфон`...
+- `cyrtranslit` для остатка латиницы (фонетическая транслитерация)
+- `clean_title(title)` — очистка заголовков от скобок/эмодзи (используется YouTube, browser)
 
 ### Configuration (.env)
 - `WAKE_WORD` — activation word (default: "вики")
