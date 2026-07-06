@@ -72,8 +72,9 @@ def _synthesize_first_available(providers: list[TTSProvider], text: str) -> bool
         try:
             audio_bytes = provider.synthesize(text)
         except Exception as ex:
-            logger.bind(error=ex, provider=type(provider).__name__).warning(
-                "TTS-провайдер недоступен, пробую следующий"
+            logger.warning(
+                f"TTS {provider.name} упал на тексте: {text[:80]!r}. "
+                f"Ошибка: {ex}. Пробую следующий."
             )
             continue
 
