@@ -8,6 +8,7 @@ from loguru import logger
 
 from voice_assistant.assistant import run_assistant_step
 from voice_assistant.audio.sounds import Sound, init_sounds, make_sound, speak_with_fallback
+from voice_assistant.nlu.wake_word import preload_wake_word_detector
 from voice_assistant.speech.tts import preload_piper
 
 
@@ -46,7 +47,8 @@ def main() -> None:
     sys.excepthook = _crash_handler
 
     init_sounds()
-    preload_piper()
+    preload_piper(wait=True)
+    preload_wake_word_detector()
 
     print("=== Голосовой помощник запущен ===")
     make_sound(Sound.STARTUP)

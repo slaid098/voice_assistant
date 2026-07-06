@@ -3,7 +3,60 @@ import re
 import threading
 from datetime import datetime
 
+from num2words import num2words
+
 from voice_assistant.speech.tts import speak
+
+_MONTHS_GENITIVE = [
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+]
+
+_DAYS_ORDINAL_NEUTER = [
+    "первое",
+    "второе",
+    "третье",
+    "четвёртое",
+    "пятое",
+    "шестое",
+    "седьмое",
+    "восьмое",
+    "девятое",
+    "десятое",
+    "одиннадцатое",
+    "двенадцатое",
+    "тринадцатое",
+    "четырнадцатое",
+    "пятнадцатое",
+    "шестнадцатое",
+    "семнадцатое",
+    "восемнадцатое",
+    "девятнадцатое",
+    "двадцатое",
+    "двадцать первое",
+    "двадцать второе",
+    "двадцать третье",
+    "двадцать четвёртое",
+    "двадцать пятое",
+    "двадцать шестое",
+    "двадцать седьмое",
+    "двадцать восьмое",
+    "двадцать девятое",
+    "тридцатое",
+    "тридцать первое",
+]
+
+_FEMININE_NUMBERS: dict[str, str] = {"один": "одна", "два": "две"}
 
 _speech_queue: queue.Queue[str] = queue.Queue()
 
@@ -60,11 +113,34 @@ def handle_simple_command(intent_name: str, payload: str | None) -> None:
 
 
 def _get_time_text() -> str:
-    """Возвращает текущую дату и время."""
+    """Возвращает текущую дату и время естественной русской речью.
+
+    Формат: «Сегодня шестое июля, двадцать часов пятнадцать минут» — без точек,
+    двоеточий и цифр, которые TTS читал бы буквально как «точка», «двоеточие».
+    """
     now = datetime.now()
-    date_str = now.strftime("%d.%m.%Y")
-    time_str = now.strftime("%H:%M")
-    return f"Сегодня {date_str}, текущее время {time_str}"
+    day = _DAYS_ORDINAL_NEUTER[now.day - 1]
+    month = _MONTHS_GENITIVE[now.month - 1]
+    hours_word = _plural(now.hour, ("час", "часа", "часов"))
+    time_str = f"{num2words(now.hour, lang='ru')} {hours_word}"
+    if now.minute:
+        minutes_word = _plural(now.minute, ("минута", "минуты", "минут"))
+        time_str += f" {_num2words_feminine(now.minute)} {minutes_word}"
+    return f"Сегодня {day} {month}, {time_str}"
+
+
+def _num2words_feminine(n: int) -> str:
+    """Число в женском роде (для слов «минута», «секунда»).
+
+    num2words всегда возвращает мужской род («один», «два»). Для минут нужна
+    женская форма («одна минута», «две минуты»).
+    """
+    word = str(num2words(n, lang="ru"))
+    parts = word.rsplit(" ", 1)
+    if len(parts) == 2:
+        prefix, last = parts
+        return f"{prefix} {_FEMININE_NUMBERS.get(last, last)}"
+    return _FEMININE_NUMBERS.get(word, word)
 
 
 def _handle_timer(payload: str | None) -> None:

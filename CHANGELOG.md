@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] — 2026-07-06
+
+### Added
+- **Транслитерация английских букв для TTS.** Новый модуль `speech/text_normalize.py`
+  с функцией `normalize_for_tts(text)`. Словарь топ-20 брендов (`YouTube→Ютуб`,
+  `Google→Гугл`, `iPhone→Айфон`...) + `cyrtranslit` для фонетической транслитерации
+  остатка латиницы. Применяется в `speak()` к обоим провайдерам (Google + Piper).
+- **Зависимость:** `cyrtranslit>=1.2.0` (25KB, pure Python, MIT).
+
+### Fixed
+- **«Точка» во времени.** `_get_time_text()` возвращал `06.07.2026` и `20:15` —
+  TTS читал буквально «точка», «двоеточие». Теперь: «Сегодня шестое июля, двадцать
+  часов пятнадцать минут» — естественной русской речью через `num2words`.
+  Правильное склонение (час/часа/часов, минута/минуты/минут) и женский род
+  для минут (одна минута, две минуты).
+- **Стартовый бип слишком рано.** `Sound.STARTUP` играл когда Piper ещё грузился
+  в фоновом потоке, а Vosk-модель вообще не загружена. Теперь: `preload_piper(wait=True)`
+  (блокирует до загрузки) + `preload_wake_word_detector()` (загружает Vosk-модель),
+  и только потом бип. Бип = «готова принимать команды».
+- **Дублирование `_clean_title`.** Идентичные функции в `youtube.py` и `browser.py`
+  → одна `clean_title()` в `text_normalize.py`.
+
 ## [1.2.3] — 2026-07-06
 
 ### Fixed

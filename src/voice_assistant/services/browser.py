@@ -1,8 +1,9 @@
-import re
 import sys
 import webbrowser
 
 from loguru import logger
+
+from voice_assistant.speech.text_normalize import clean_title
 
 _IS_WINDOWS = sys.platform == "win32"
 
@@ -46,7 +47,7 @@ class BrowserState:
             return None
         # "Video Title - YouTube - Google Chrome" → "Video Title"
         title = raw.split(" - YouTube")[0]
-        return _clean_title(title) if title else None
+        return clean_title(title) if title else None
 
 
 _state = BrowserState()
@@ -68,10 +69,3 @@ def get_current_title() -> str | None:
         Очищенный заголовок или None.
     """
     return _state.get_current_title()
-
-
-def _clean_title(title: str) -> str:
-    """Очищает заголовок от скобок, эмодзи и мусора."""
-    title = re.sub(r"\[.*?\]|\(.*?\)|\{.*?\}", "", title)
-    title = re.sub(r"[^\w\sА-Яа-яЁё.,!?]", " ", title)
-    return re.sub(r"\s+", " ", title).strip()
