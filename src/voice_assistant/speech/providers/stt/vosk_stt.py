@@ -1,5 +1,4 @@
 import json
-from importlib.resources import files
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -7,8 +6,7 @@ import numpy as np
 from loguru import logger
 
 from voice_assistant.config import settings
-
-_MODEL_DIR: Path = Path(str(files("voice_assistant") / "assets" / "models" / "vosk"))
+from voice_assistant.speech.model_loader import vosk_stt_model_path
 
 
 class VoskRecognizerProtocol(Protocol):
@@ -80,13 +78,11 @@ def create_recognizer(grammar: str | None = None) -> VoskRecognizerProtocol | No
 
 
 def _find_model_dir() -> Path | None:
-    """Находит директорию модели Vosk (поддерживает распакованные архивы)."""
-    if not _MODEL_DIR.exists():
+    """Находит директорию модели Vosk STT."""
+    model_dir = vosk_stt_model_path()
+    if not model_dir.exists():
         return None
-    for child in _MODEL_DIR.iterdir():
-        if child.is_dir() and child.name.startswith("vosk-model"):
-            return child
-    return None
+    return model_dir
 
 
 _state = _ModelState()

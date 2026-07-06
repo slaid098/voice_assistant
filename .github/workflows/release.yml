@@ -31,22 +31,31 @@ jobs:
       - name: Download Piper voice model
         shell: pwsh
         run: |
-          $dir = "src/voice_assistant/assets/sounds/voices"
+          $dir = "dist/models/piper"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           $base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium"
           Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile "$dir/ru_RU-irina-medium.onnx"
           Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile "$dir/ru_RU-irina-medium.onnx.json"
 
-      - name: Download Vosk model (small-ru)
+      - name: Download Vosk STT model
         shell: pwsh
         run: |
-          $dir = "src/voice_assistant/assets/models/vosk"
+          $dir = "dist/models/vosk_stt"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           $url = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
-          $zip = "$dir/vosk-model-small-ru-0.22.zip"
-          Invoke-WebRequest -Uri $url -OutFile $zip
-          Expand-Archive -Path $zip -DestinationPath $dir -Force
-          Remove-Item $zip
+          Invoke-WebRequest -Uri $url -OutFile "$dir/vosk-model-small-ru-0.22.zip"
+          Expand-Archive -Path "$dir/vosk-model-small-ru-0.22.zip" -DestinationPath $dir -Force
+          Remove-Item "$dir/vosk-model-small-ru-0.22.zip"
+
+      - name: Download Vosk TTS model
+        shell: pwsh
+        run: |
+          $dir = "dist/models/vosk_tts"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $url = "https://alphacephei.com/vosk/models/vosk-model-tts-ru-0.7-multi.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$dir/vosk-model-tts-ru-0.7-multi.zip"
+          Expand-Archive -Path "$dir/vosk-model-tts-ru-0.7-multi.zip" -DestinationPath $dir -Force
+          Remove-Item "$dir/vosk-model-tts-ru-0.7-multi.zip"
 
       - name: Build with PyInstaller
         shell: pwsh
@@ -56,6 +65,7 @@ jobs:
             --collect-data voice_assistant `
             --collect-all piper `
             --collect-all vosk `
+            --collect-all vosk_tts `
             src/voice_assistant/__main__.py
 
       - name: Package release
@@ -65,7 +75,7 @@ jobs:
           Copy-Item README.md dist/
           Copy-Item scripts/install_autorun.bat dist/
           Copy-Item scripts/remove_autorun.bat dist/
-          Compress-Archive -Path dist/voice-assistant.exe,dist/.env,dist/README.md,dist/install_autorun.bat,dist/remove_autorun.bat `
+          Compress-Archive -Path dist/voice-assistant.exe,dist/models,dist/.env,dist/README.md,dist/install_autorun.bat,dist/remove_autorun.bat `
             -DestinationPath dist/voice-assistant.zip
 
       - uses: softprops/action-gh-release@v2
