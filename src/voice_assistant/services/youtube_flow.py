@@ -51,7 +51,10 @@ def _run_pagination(
     *,
     listen: ListenFn,
 ) -> None:
-    """Озвучивает результаты YouTube и обрабатывает команды навигации."""
+    """Озвучивает результаты YouTube и обрабатывает команды навигации.
+
+    При непонимании — короткий переспрос без повтора полного промпта.
+    """
     index = 0
     while True:
         video = videos[index]
@@ -61,6 +64,14 @@ def _run_pagination(
             return
 
         action = _parse_pagination_response(response)
+
+        if action == "unknown":
+            speak("Не поняла. Включить, дальше или назад.")
+            response = listen(stage="youtube_navigation", prompt=None)
+            if not response:
+                return
+            action = _parse_pagination_response(response)
+
         if action == "play":
             _play_video(video["url"])
             return
@@ -70,7 +81,6 @@ def _run_pagination(
 
         next_index = _get_next_index(index=index, action=action, total=len(videos))
         if next_index is None:
-            speak("Не поняла. Скажите: включить, дальше или назад.")
             continue
         index = next_index
 

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] — 2026-07-06
+
+### Fixed
+- **Убраны лишние бипы при непонимании.** Раньше: бип(DONE) + «не поняла» + бип(READY) + запись.
+  Теперь: только «Я вас не поняла, повторите.» → запись. Бипов нет.
+- **YouTube-навигация: короткий переспрос.** Раньше при непонимании повторялся полный промпт
+  («Видео номер один: Котики. Включить или дальше?»). Теперь: «Не поняла. Включить, дальше
+  или назад.» → запись без повтора промпта.
+- **Единый счётчик непониманий.** Раньше было два вложенных цикла с «не поняла»
+  (пустой текст + несовпадение интента) с раздельными счётчиками. Теперь один цикл,
+  один счётчик, 3 попытки на всё.
+- **Лимит попыток в `_record_and_transcribe_with_retries`.** Раньше бесконечный цикл
+  при пустом тексте (Google не расслышал). Теперь — лимит max_misunderstand.
+
+## [1.2.2] — 2026-07-05
+
+### Fixed
+- Vosk CamelCase API: `AcceptWaveform`/`Result`/`PartialResult`/`Reset` (не snake_case)
+- Raw PCM вместо WAV-байты в `transcribe()` (Vosk ожидает сырой PCM)
+- Проверено локально с реальной моделью vosk-model-small-ru-0.22
+
 ## [1.2.0] — 2026-07-05
 
 ### Added

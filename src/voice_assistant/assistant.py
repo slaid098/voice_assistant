@@ -70,21 +70,34 @@ def _listen_for_wake_word_streaming(detector: Any) -> str | None:
 def _listen_intent_after_activation() -> dict[str, Any] | None:
     """Слушает команды после активации, пока не получит валидный интент.
 
-    Лимит попыток: после max_misunderstand непониманий — выход в режим ожидания.
-    При таймауте (молчание) — один бип DONE и выход в режим ожидания wake word.
+    Единый цикл с одним счётчиком для всех типов непонимания
+    (пустой текст + несовпадение интента). При непонимании — только фраза,
+    без бипов. После max_misunderstand неудач — DONE + выход.
+    При таймауте (молчание) — DONE + выход.
     """
     attempts = 0
     first_attempt = True
     while True:
-        command_text = _record_and_transcribe_with_retries(
-            stage="command", play_beep=not first_attempt
-        )
+        if not first_attempt:
+            speak("Я вас не поняла, повторите.")
         first_attempt = False
-        if not command_text:
+
+        text = _listen_text_or_none(
+            timeout_ms=settings.command_timeout_ms, stage="command", play_beep=False
+        )
+        if text is None:
             make_sound(Sound.DONE)
             return None
 
-        intent = parse_voice_intent(command_text)
+        if not text:
+            attempts += 1
+            if attempts >= settings.max_misunderstand:
+                make_sound(Sound.DONE)
+                speak("Не получается. Скажите слово активации снова.")
+                return None
+            continue
+
+        intent = parse_voice_intent(text)
         if intent:
             return intent
 
@@ -93,9 +106,6 @@ def _listen_intent_after_activation() -> dict[str, Any] | None:
             make_sound(Sound.DONE)
             speak("Не получается. Скажите слово активации снова.")
             return None
-
-        make_sound(Sound.DONE)
-        speak("Я вас не поняла, повторите.")
 
 
 def _listen_text_or_none(timeout_ms: int, stage: str, *, play_beep: bool = True) -> str | None:
@@ -130,21 +140,28 @@ def _record_and_transcribe_with_retries(
 ) -> str | None:
     """Повторно слушает и распознает речь до успеха или таймаута.
 
-    При таймауте (молчание) — молча возвращает None. Финальный бип DONE —
-    ответственность вызывающего уровня (handler или _listen_intent_after_activation).
-    При непонимании (речь была, но не распознана) — бип DONE + переспрос.
+    Промпт говорится только на первой итерации. При непонимании — только
+    фраза «Я вас не поняла, повторите.» без бипов и без повтора промпта.
+    Лимит попыток: после max_misunderstand — возврат None (молча).
     """
+    attempts = 0
+    first_iteration = True
     while True:
-        if prompt:
+        if first_iteration and prompt:
             speak(prompt)
 
         text = _listen_text_or_none(
-            timeout_ms=settings.command_timeout_ms, stage=stage, play_beep=play_beep
+            timeout_ms=settings.command_timeout_ms,
+            stage=stage,
+            play_beep=play_beep if first_iteration else False,
         )
         if text is None:
             return None
         if text:
             return text
 
-        make_sound(Sound.DONE)
+        attempts += 1
+        if attempts >= settings.max_misunderstand:
+            return None
+        first_iteration = False
         speak("Я вас не поняла, повторите.")
