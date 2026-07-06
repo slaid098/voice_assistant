@@ -113,6 +113,34 @@ def test_three_misunderstandings_then_exit(monkeypatch, mock_speak, mock_make_so
     assert "Не получается. Скажите слово активации снова." in speak_texts
 
 
+def test_misunderstanding_no_extra_beeps(monkeypatch, mock_speak, mock_make_sound):
+    """При непонимании — только фраза, без бипов DONE/READY.
+
+    Проверка: 2 непонимания подряд — DONE не играется, только на 3-й (выход).
+    READY_TO_LISTEN не играется при переспросе.
+    """
+    import voice_assistant.assistant as a_mod
+
+    monkeypatch.setattr(a_mod, "record_user_speech", lambda **kw: _fake_audio())
+    transcribe_responses = iter(
+        [
+            "слушай вики",
+            "блабла",
+            "опять блабла",
+            "совсем блабла",
+        ]
+    )
+    monkeypatch.setattr(a_mod, "transcribe_audio", lambda audio: next(transcribe_responses))
+    monkeypatch.setattr(a_mod, "drain_speech_queue", lambda: None)
+
+    a_mod.run_assistant_step()
+
+    done_calls = [c for c in mock_make_sound.call_args_list if c.args[0].name == "DONE"]
+    ready_calls = [c for c in mock_make_sound.call_args_list if c.args[0].name == "READY_TO_LISTEN"]
+    assert len(done_calls) == 1, "DONE должен играть только при выходе (3-я попытка)"
+    assert len(ready_calls) == 0, "READY_TO_LISTEN не должен играть при переспросе"
+
+
 def test_wake_word_not_detected_no_sound(monkeypatch, mock_speak, mock_make_sound):
     """Сказали что-то без wake word → выход без звуков и фраз."""
     import voice_assistant.assistant as a_mod
