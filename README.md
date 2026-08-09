@@ -41,16 +41,22 @@ uv run voice-assistant
 | Переменная | Описание | По умолчанию |
 |-----------|----------|-------------|
 | `WAKE_WORD` | Слово активации | `вики` |
-| `WAKE_ALIASES` | Алиасы для fuzzy-матчинга (через запятую) | `вики,wiki,вика,...` |
-| `WAKE_THRESHOLD` | Порог fuzzy-матчинга (0-100) | `70` |
+| `WAKE_WORD_DETECTOR` | Детектор слова активации: `openwakeword` | `openwakeword` |
+| `STT_PROVIDER` | Провайдер распознавания команд: `google` / `vosk` / `auto` | `google` |
+| `STT_LANGUAGE` | Язык Google STT | `ru-RU` |
 | `WAKE_TIMEOUT_MS` | Таймаут ожидания активации (мс) | `30000` |
 | `COMMAND_TIMEOUT_MS` | Таймаут ожидания команды (мс) | `6000` |
+| `MAX_MISUNDERSTAND` | Максимум непониманий подряд | `3` |
 | `SAMPLERATE` | Частота микрофона (Гц) | `16000` |
 | `CHUNK_MS` | Размер чанка записи (мс) | `100` |
 | `VAD_THRESHOLD` | Порог определения голоса (RMS) | `200.0` |
 | `SILENCE_LIMIT_MS` | Тишина для конца фразы (мс) | `1800` |
 | `TTS_PROVIDER` | Провайдер речи: `google` / `piper` / `vosk` / `auto` | `google` |
 | `TTS_CACHE_SIZE` | Размер кэша динамических фраз | `50` |
+| `PIPER_MODEL` | Модель Piper TTS | `ru_RU-irina-medium.onnx` |
+| `VOSK_STT_MODEL` | Модель Vosk STT | `vosk-model-small-ru-0.22` |
+| `VOSK_TTS_MODEL` | Модель Vosk TTS | `vosk-model-tts-ru-0.7-multi` |
+| `VOSK_TTS_SPEAKER` | Спикер Vosk TTS 0-4 | `2` |
 | `WEATHER_DEFAULT_CITY` | Город по умолчанию | `Костюковка` |
 | `OPENWEATHER_API_KEY` | Ключ OpenWeather API (пусто = Open-Meteo) | (пусто) |
 | `YOUTUBE_SEARCH_LIMIT` | Количество результатов поиска | `10` |
