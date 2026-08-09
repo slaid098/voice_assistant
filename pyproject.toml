@@ -39,6 +39,8 @@ dependencies = [
     "vosk>=0.3.45",
     "pywin32>=308 ; sys_platform == 'win32'",
     "vosk-tts>=0.3.61",
+    "openwakeword>=0.4.0",
+    "onnxruntime>=1.27.0",
 ]
 
 [project.optional-dependencies]
@@ -140,6 +142,7 @@ module = [
     "win32con.*",
     "vosk.*",
     "vosk_tts.*",
+    "openwakeword.*",
 ]
 ignore_missing_imports = true
 

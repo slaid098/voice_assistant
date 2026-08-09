@@ -1,199 +1,167 @@
-from voice_assistant.nlu.wake_word import is_wake_word
+"""Тесты OpenWakeWordDetector.
+
+Мокаем openwakeword.model.Model — реальную ONNX-модель не загружаем.
+"""
+
+from unittest.mock import MagicMock, patch
+
+import numpy as np
 
 
-def test_exact_default_wake_word():
-    """Default wake word is 'вики' when WAKE_WORD env is not set."""
-    assert is_wake_word("вики") is True
+def _make_detector_with_score(score: float):
+    """Создаёт OpenWakeWordDetector с замоканной Model.predict.
+
+    predict всегда возвращает {'wiki': score}.
+    """
+    fake_model = MagicMock()
+    fake_model.predict.return_value = {"wiki": score}
+
+    with (
+        patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path,
+        patch("openwakeword.model.Model", return_value=fake_model),
+    ):
+        mock_path.return_value.exists.return_value = True
+        import voice_assistant.nlu.wake_word as ww_mod
+
+        detector = ww_mod.OpenWakeWordDetector()
+    return detector
 
 
-def test_wake_word_in_sentence():
-    assert is_wake_word("привет вики погода") is True
+def test_openwakeword_detect_chunk_positive():
+    """score 0.7 (>= 0.5) → detect_chunk возвращает 'вики'."""
+    detector = _make_detector_with_score(0.7)
+
+    chunk = np.zeros(1600, dtype=np.int16)
+    assert detector.detect_chunk(chunk) == "вики"
 
 
-def test_fuzzy_wake_word_vike():
-    assert is_wake_word("вике") is True
+def test_openwakeword_detect_chunk_negative():
+    """score 0.3 (< 0.5) → detect_chunk возвращает None."""
+    detector = _make_detector_with_score(0.3)
+
+    chunk = np.zeros(1600, dtype=np.int16)
+    assert detector.detect_chunk(chunk) is None
 
 
-def test_fuzzy_wake_word_vika():
-    assert is_wake_word("вика") is True
+def test_openwakeword_detect_chunk_boundary():
+    """score ровно 0.5 (>= 0.5) → detect_chunk возвращает 'вики'."""
+    detector = _make_detector_with_score(0.5)
+
+    chunk = np.zeros(1600, dtype=np.int16)
+    assert detector.detect_chunk(chunk) == "вики"
 
 
-def test_fuzzy_wake_word_vikki():
-    assert is_wake_word("викки") is True
+def test_openwakeword_is_available_true():
+    """Модель загрузилась → is_available() True."""
+    detector = _make_detector_with_score(0.0)
+    assert detector.is_available() is True
 
 
-def test_not_wake_word():
-    assert is_wake_word("привет") is False
+def test_openwakeword_is_available_false():
+    """Модель None (не загрузилась) → is_available() False."""
+    with patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path:
+        mock_path.return_value.exists.return_value = False
+        import voice_assistant.nlu.wake_word as ww_mod
+
+        detector = ww_mod.OpenWakeWordDetector()
+    assert detector.is_available() is False
+    chunk = np.zeros(1600, dtype=np.int16)
+    assert detector.detect_chunk(chunk) is None
 
 
-def test_not_wake_word_empty():
-    assert is_wake_word("") is False
-
-
-def test_not_wake_word_unrelated():
-    assert is_wake_word("погода москва") is False
-
-
-def test_root_match():
-    """Root 'вик' should match words containing it."""
-    assert is_wake_word("виккики") is True
-
-
-def test_case_insensitive():
-    assert is_wake_word("Вики") is True
-    assert is_wake_word("ВИКИ") is True
-
-
-def test_custom_wake_word_from_env(monkeypatch):
-    """Wake word is configurable via WAKE_WORD env."""
+def test_active_detector_openwakeword(monkeypatch):
+    """wake_word_detector='openwakeword' + модель доступна → OpenWakeWordDetector."""
     import dataclasses
 
     import voice_assistant.config as config_mod
     import voice_assistant.nlu.wake_word as ww_mod
 
-    custom = dataclasses.replace(
-        config_mod._load_settings(),
-        wake_word="маркиза",
-        wake_aliases=["маркиза"],
-    )
-    monkeypatch.setattr(ww_mod, "settings", custom)
-
-    assert ww_mod.is_wake_word("маркиза") is True
-    assert ww_mod.is_wake_word("вики") is False
-
-
-def test_check_wake_word_fuzzy_match():
-    """_check_wake_word_fuzzy распознаёт точное совпадение."""
-    from voice_assistant.nlu.wake_word import _check_wake_word_fuzzy
-
-    assert _check_wake_word_fuzzy("вики") == "вики"
-    assert _check_wake_word_fuzzy("вика") == "вика"
-
-
-def test_check_wake_word_fuzzy_unk_returns_none():
-    """_check_wake_word_fuzzy возвращает None для [unk]."""
-    from voice_assistant.nlu.wake_word import _check_wake_word_fuzzy
-
-    assert _check_wake_word_fuzzy("[unk]") is None
-    assert _check_wake_word_fuzzy("") is None
-
-
-def test_check_wake_word_fuzzy_unrelated_returns_none():
-    """_check_wake_word_fuzzy отсекает неродственные слова."""
-    from voice_assistant.nlu.wake_word import _check_wake_word_fuzzy
-
-    assert _check_wake_word_fuzzy("привет") is None
-    assert _check_wake_word_fuzzy("погода") is None
-
-
-def test_build_grammar_contains_wake_aliases():
-    """_build_grammar собирает JSON из wake_aliases + [unk]."""
-    import json
-
-    from voice_assistant.nlu.wake_word import _build_grammar
-
-    grammar = json.loads(_build_grammar())
-    assert "[unk]" in grammar
-    assert "вики" in grammar
-    assert "вика" in grammar
-
-
-def test_active_detector_fuzzy_when_vosk_unavailable(monkeypatch):
-    """При WAKE_WORD_DETECTOR=vosk и недоступной модели — fallback на fuzzy (None)."""
-    import dataclasses
-
-    import voice_assistant.config as config_mod
-    import voice_assistant.nlu.wake_word as ww_mod
-
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="vosk")
+    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
     monkeypatch.setattr(ww_mod, "settings", settings)
+    monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
+    monkeypatch.setattr(ww_mod, "_cached_detector", None)
 
-    monkeypatch.setattr(ww_mod.VoskWakeWordDetector, "is_available", lambda self: False)
+    detector = ww_mod.active_wake_word_detector()
+    assert detector is not None
+    assert detector.name == "openwakeword"
+
+
+def test_active_detector_unavailable(monkeypatch):
+    """Модель не доступна → None."""
+    import dataclasses
+
+    import voice_assistant.config as config_mod
+    import voice_assistant.nlu.wake_word as ww_mod
+
+    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
+    monkeypatch.setattr(ww_mod, "settings", settings)
+    monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: False)
+    monkeypatch.setattr(ww_mod, "_cached_detector", None)
 
     detector = ww_mod.active_wake_word_detector()
     assert detector is None
 
 
-def test_active_detector_returns_vosk_when_available(monkeypatch):
-    """При WAKE_WORD_DETECTOR=vosk и доступной модели — VoskWakeWordDetector."""
+def test_false_positive_words():
+    """«виктория», «актёр», «привет» → None (мок отдаёт score < 0.5)."""
+    detector = _make_detector_with_score(0.2)
+
+    chunk = np.zeros(1600, dtype=np.int16)
+    for _ in range(3):
+        assert detector.detect_chunk(chunk) is None
+
+
+def test_reset_clears_buffer():
+    """reset() очищает буфер и вызывает model.reset()."""
+    fake_model = MagicMock()
+    fake_model.reset = MagicMock()
+    fake_model.predict.return_value = {"wiki": 0.0}
+
+    with (
+        patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path,
+        patch("openwakeword.model.Model", return_value=fake_model),
+    ):
+        mock_path.return_value.exists.return_value = True
+        import voice_assistant.nlu.wake_word as ww_mod
+
+        detector = ww_mod.OpenWakeWordDetector()
+
+    chunk = np.zeros(1600, dtype=np.int16)
+    detector.detect_chunk(chunk)
+    assert detector._buf_len > 0
+
+    detector.reset()
+    assert detector._buf_len == 0
+    assert not detector._buffer.any()
+    fake_model.reset.assert_called_once()
+
+
+def test_reset_when_model_none():
+    """reset() работает безопасно, даже если модель не загрузилась."""
+    with patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path:
+        mock_path.return_value.exists.return_value = False
+        import voice_assistant.nlu.wake_word as ww_mod
+
+        detector = ww_mod.OpenWakeWordDetector()
+
+    detector.reset()
+    assert detector._buf_len == 0
+    assert not detector._buffer.any()
+
+
+def test_active_detector_cached(monkeypatch):
+    """active_wake_word_detector возвращает тот же объект при повторном вызове."""
     import dataclasses
 
     import voice_assistant.config as config_mod
     import voice_assistant.nlu.wake_word as ww_mod
 
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="vosk")
+    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
     monkeypatch.setattr(ww_mod, "settings", settings)
-    monkeypatch.setattr(ww_mod.VoskWakeWordDetector, "is_available", lambda self: True)
+    monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
+    monkeypatch.setattr(ww_mod, "_cached_detector", None)
 
-    detector = ww_mod.active_wake_word_detector()
-    assert detector is not None
-    assert detector.name == "vosk"
-
-
-def test_active_detector_fuzzy_mode(monkeypatch):
-    """При WAKE_WORD_DETECTOR=fuzzy — FuzzyWakeWordDetector."""
-    import dataclasses
-
-    import voice_assistant.config as config_mod
-    import voice_assistant.nlu.wake_word as ww_mod
-
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="fuzzy")
-    monkeypatch.setattr(ww_mod, "settings", settings)
-
-    detector = ww_mod.active_wake_word_detector()
-    assert detector is not None
-    assert detector.name == "fuzzy"
-
-
-def test_vosk_detector_detects_wake_word(monkeypatch):
-    """VoskWakeWordDetector.detect_chunk детектит wake word через мок recognizer."""
-    import json
-
-    from voice_assistant.nlu.wake_word import VoskWakeWordDetector
-
-    fake_recognizer = type(
-        "FakeRecognizer",
-        (),
-        {
-            "AcceptWaveform": lambda self, data: 1,
-            "Result": lambda self: json.dumps({"text": "вики"}),
-            "PartialResult": lambda self: json.dumps({"partial": ""}),
-            "Reset": lambda self: None,
-        },
-    )()
-
-    detector = VoskWakeWordDetector()
-    monkeypatch.setattr(detector, "_ensure_loaded", lambda: fake_recognizer)
-
-    import numpy as np
-
-    chunk = np.zeros(1600, dtype=np.int16)
-    result = detector.detect_chunk(chunk)
-    assert result == "вики"
-
-
-def test_vosk_detector_ignores_unk(monkeypatch):
-    """VoskWakeWordDetector игнорирует [unk] (ложное срабатывание)."""
-    import json
-
-    from voice_assistant.nlu.wake_word import VoskWakeWordDetector
-
-    fake_recognizer = type(
-        "FakeRecognizer",
-        (),
-        {
-            "AcceptWaveform": lambda self, data: 1,
-            "Result": lambda self: json.dumps({"text": "[unk]"}),
-            "PartialResult": lambda self: json.dumps({"partial": ""}),
-            "Reset": lambda self: None,
-        },
-    )()
-
-    detector = VoskWakeWordDetector()
-    monkeypatch.setattr(detector, "_ensure_loaded", lambda: fake_recognizer)
-
-    import numpy as np
-
-    chunk = np.zeros(1600, dtype=np.int16)
-    result = detector.detect_chunk(chunk)
-    assert result is None
+    first = ww_mod.active_wake_word_detector()
+    second = ww_mod.active_wake_word_detector()
+    assert first is not None
+    assert first is second

@@ -1,40 +1,24 @@
-"""Детекция слова активации (wake word).
+"""Детекция слова активации (wake word) через openWakeWord.
 
-Два типа детекторов:
-  - fuzzy (текстовый): запись→распознание→fuzzy-матчинг. Текущий путь (Google STT).
-  - vosk (аудио-стрим): Vosk-грамматика узким списком→fuzzy-порог. Мгновенно локально.
-
-WakeWordDetector Protocol — точка расширения для будущих детекторов
-(openWakeWord, и т.д.).
+Единственный детектор — openWakeWord (нейросетевой, ONNX).
+Стримит чанки аудио в реальном времени, возвращает wake word при детекции.
+Модель wiki.onnx обучена на Vast.ai (FP/hour=0.0, recall 26%).
 """
 
-import json
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 from loguru import logger
-from thefuzz import fuzz
 
 from voice_assistant.config import settings
-
-
-class VoskRecognizerProtocol(Protocol):
-    """Скрытый тип KaldiRecognizer из vosk (CamelCase API)."""
-
-    def AcceptWaveform(self, data: bytes) -> int: ...
-
-    def PartialResult(self) -> str: ...
-
-    def Result(self) -> str: ...
-
-    def Reset(self) -> None: ...
+from voice_assistant.speech.model_loader import resolve_openwakeword_model
 
 
 class WakeWordDetector(Protocol):
     """Интерфейс детектора слова активации.
 
-    Аудио-стриминговые детекторы (Vosk, openWakeWord) реализуют detect_chunk():
-    питаются чанками в реальном времени и возвращают распознанное слово при детекции.
+    Аудио-стриминговые детекторы реализуют detect_chunk(): питаются чанками
+    в реальном времени и возвращают распознанное слово при детекции.
     """
 
     name: str
@@ -54,178 +38,130 @@ class WakeWordDetector(Protocol):
         """Проверяет, готов ли детектор к работе (модель загружена)."""
         ...
 
-
-def is_wake_word(text: str) -> bool:
-    """Проверяет, содержит ли фраза слово активации (fuzzy-матчинг).
-
-    Сохраняется для fuzzy-пути (Google STT → текст → проверка).
-
-    Args:
-        text: Распознанная фраза пользователя.
-
-    Returns:
-        True, если слово активации найдено.
-    """
-    if not text:
-        return False
-
-    words = text.lower().strip().split()
-    return any(_matches_wake_word(word) for word in words)
+    def reset(self) -> None:
+        """Очищает внутреннее состояние между wake-сессиями."""
+        ...
 
 
-def _matches_wake_word(word: str) -> bool:
-    """Проверяет одно слово против wake word и алиасов."""
-    if settings.wake_word in word:
-        return True
+class OpenWakeWordDetector:
+    """Нейросетевой детектор слова активации на openWakeWord (ONNX).
 
-    for alias in settings.wake_aliases:
-        if alias in word:
-            return True
-        if fuzz.ratio(alias, word) >= settings.wake_threshold:
-            return True
-
-    root = settings.wake_word[:3] if len(settings.wake_word) >= 3 else settings.wake_word
-    return root in word
-
-
-class FuzzyWakeWordDetector:
-    """Текстовый fuzzy-детектор. Обёртка над is_wake_word для Google-пути.
-
-    Аудио здесь не стримится — детекция идёт после полного распознавания Google.
-    detect_chunk копит чанки, но реальную проверку делает только в конце
-    (через _finalize_and_check). Это заглушка-адаптер для единого интерфейса.
+    Стримит чанки аудио (int16, 16kHz) в openWakeWord Model.predict().
+    Буферизует входящие чанки по 1280 samples (80ms) — стандарт openWakeWord.
+    При score >= 0.5 возвращает settings.wake_word.
     """
 
-    name = "fuzzy"
+    name = "openwakeword"
+    _threshold = 0.5
+    _feed_size = 1280  # 80ms at 16kHz — стандартный размер чанка openWakeWord
+    _buf_capacity = 4096  # pre-allocated buffer (no per-chunk realloc)
 
     def __init__(self) -> None:
-        self._buffer: list[np.ndarray] = []
+        self._model: Any = None
+        self._buffer: np.ndarray = np.zeros(self._buf_capacity, dtype=np.int16)
+        self._buf_len: int = 0
 
-    def detect_chunk(self, chunk: np.ndarray) -> str | None:
-        """Копит чанки. Реальная детекция — после распознавания Google."""
-        self._buffer.append(chunk)
-        return None
+        model_path = resolve_openwakeword_model()
+        if not model_path.exists():
+            logger.warning(f"Модель openWakeWord не найдена: {model_path}")
+            return
 
-    def is_available(self) -> bool:
-        """Fuzzy-детектор всегда доступен (не требует модели)."""
-        return True
+        try:
+            from openwakeword.model import Model  # noqa: PLC0415 — optional dependency
 
-
-class VoskWakeWordDetector:
-    """Аудио-стриминговый детектор на Vosk-грамматике.
-
-    Узкая грамматика ['вики','вика','ники','мики','[unk]'] (из wake_aliases) +
-    fuzzy-порог (fuzz.ratio >= WAKE_THRESHOLD) для отсечения ложных срабатываний.
-    Мгновенно локально, без сети.
-    """
-
-    name = "vosk"
-
-    def __init__(self) -> None:
-        self._recognizer: VoskRecognizerProtocol | None = None
-        self._load_attempted = False
-
-    def _ensure_loaded(self) -> VoskRecognizerProtocol | None:
-        """Лениво создаёт KaldiRecognizer с грамматикой из wake_aliases."""
-        if self._recognizer is not None or self._load_attempted:
-            return self._recognizer
-
-        self._load_attempted = True
-        from voice_assistant.speech.providers.stt.vosk_stt import (  # noqa: PLC0415
-            create_recognizer,
-        )
-
-        grammar = _build_grammar()
-        self._recognizer = create_recognizer(grammar)
-        if self._recognizer is not None:
-            logger.info("Vosk wake-word детектор готов (грамматика + fuzzy-порог)")
-        else:
-            logger.warning("Vosk wake-word детектор недоступен (модель не загружена)")
-
-        return self._recognizer
-
-    def detect_chunk(self, chunk: np.ndarray) -> str | None:
-        """Обрабатывает чанк, возвращает wake word при детекции.
-
-        Двойная защита от ложных срабатываний:
-        1. Vosk-грамматика отдаёт только слова из списка
-        2. fuzzy-порог (fuzz.ratio >= WAKE_THRESHOLD) отсекает неточные совпадения
-        """
-        recognizer = self._ensure_loaded()
-        if recognizer is None:
-            return None
-
-        raw_bytes = chunk.tobytes()
-        if recognizer.AcceptWaveform(raw_bytes):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip().lower()
-            return _check_wake_word_fuzzy(text)
-
-        partial = json.loads(recognizer.PartialResult())
-        text = partial.get("partial", "").strip().lower()
-        return _check_wake_word_fuzzy(text)
-
-    def is_available(self) -> bool:
-        """Проверяет, загружена ли модель Vosk."""
-        return self._ensure_loaded() is not None
+            self._model = Model(wakeword_models=[str(model_path)])
+            logger.info(f"openWakeWord детектор готов: {model_path}")
+        except Exception as ex:
+            logger.bind(error=ex).opt(exception=True).warning(
+                "Не удалось загрузить модель openWakeWord"
+            )
 
     def reset(self) -> None:
-        """Сбрасывает распознаватель между сессиями (как в прототипе)."""
-        if self._recognizer is not None:
-            self._recognizer.Reset()
+        """Очищает буфер и внутреннее состояние модели между wake-сессиями."""
+        self._buffer.fill(0)
+        self._buf_len = 0
+        if self._model is not None and hasattr(self._model, "reset"):
+            self._model.reset()
 
+    def detect_chunk(self, chunk: np.ndarray) -> str | None:
+        """Обрабатывает чанк аудио, возвращает wake word при детекции.
 
-def _build_grammar() -> str:
-    """Собирает JSON-грамматику из wake_aliases для Vosk.
+        Буферизует входящие чанки в pre-allocated массив (без realloc каждый
+        чанк), кормит openWakeWord по 1280 samples (80ms).
+        При score >= 0.5 возвращает settings.wake_word.
 
-    Формат: '["вики", "вика", "ники", "[unk]"]' — Vosk распознаёт только эти слова.
-    """
-    words = [*list(settings.wake_aliases), "[unk]"]
-    unique = list(dict.fromkeys(words))
+        Args:
+            chunk: Numpy-массив аудио (int16, 16 kHz, mono).
 
-    return json.dumps(unique, ensure_ascii=False)
+        Returns:
+            Wake word или None (продолжаем слушать).
+        """
+        if self._model is None:
+            return None
 
+        n = len(chunk)
+        if n > self._buffer.size:
+            chunk = chunk[-self._buffer.size :]
+            n = len(chunk)
+        if self._buf_len + n > self._buffer.size:
+            self._buf_len = 0
+        self._buffer[self._buf_len : self._buf_len + n] = chunk
+        self._buf_len += n
 
-def _check_wake_word_fuzzy(text: str) -> str | None:
-    """Проверяет распознанный текст через fuzzy-порог.
+        while self._buf_len >= self._feed_size:
+            feed = self._buffer[: self._feed_size].copy()
+            self._buf_len -= self._feed_size
+            if self._buf_len > 0:
+                self._buffer[: self._buf_len] = self._buffer[
+                    self._feed_size : self._feed_size + self._buf_len
+                ]
+            scores: dict[str, float] = self._model.predict(feed)
+            if not scores:
+                continue
+            score = max(scores.values())
+            if score >= self._threshold:
+                return settings.wake_word
 
-    Returns:
-        Распознанное слово (если проходит порог) или None.
-    """
-    if not text or text == "[unk]":
         return None
 
-    words = text.split()
-    for word in words:
-        if settings.wake_word in word:
-            return word
-        for alias in settings.wake_aliases:
-            if alias in word or fuzz.ratio(alias, word) >= settings.wake_threshold:
-                return word
+    def is_available(self) -> bool:
+        """Проверяет, загружена ли модель openWakeWord."""
+        return self._model is not None
 
-    return None
+
+_cached_detector: OpenWakeWordDetector | None = None
 
 
 def active_wake_word_detector() -> WakeWordDetector | None:
     """Возвращает детектор согласно настройке WAKE_WORD_DETECTOR.
 
-    vosk → VoskWakeWordDetector (если доступен, иначе None → fallback на fuzzy)
-    fuzzy → FuzzyWakeWordDetector
+    openwakeword → OpenWakeWordDetector (если доступен, иначе None).
+    Детектор кэшируется на уровне модуля — создаётся один раз при первом
+    вызове (или через preload_wake_word_detector при старте), чтобы не
+    пересоздавать ONNX-модель (~1-2s) на каждом цикле прослушивания.
     """
-    if settings.wake_word_detector == "vosk":
-        detector = VoskWakeWordDetector()
+    global _cached_detector  # noqa: PLW0603 — module-level singleton pattern
+
+    if _cached_detector is not None:
+        return _cached_detector
+
+    if settings.wake_word_detector == "openwakeword":
+        detector = OpenWakeWordDetector()
         if detector.is_available():
+            _cached_detector = detector
             return detector
-        logger.warning("Vosk wake-word недоступен, авто-fallback на fuzzy")
+        logger.error("openWakeWord детектор недоступен — модель не загружена")
         return None
-    return FuzzyWakeWordDetector()
+
+    logger.error(f"Неизвестный детектор: {settings.wake_word_detector}")
+    return None
 
 
 def preload_wake_word_detector() -> None:
     """Предзагружает модель wake-word детектора при старте.
 
-    Для Vosk — загружает модель (1-2 сек), чтобы первый wake-word не задерживался.
-    Для fuzzy — no-op (нет модели).
+    Загружает openWakeWord модель при старте и кэширует её, чтобы первый
+    wake word не задерживался и модель не пересоздавалась между циклами.
     """
     detector = active_wake_word_detector()
     if detector is not None:

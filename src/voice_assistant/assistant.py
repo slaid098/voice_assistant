@@ -6,7 +6,7 @@ from voice_assistant.audio.sounds import Sound, make_sound
 from voice_assistant.config import settings
 from voice_assistant.nlu.handlers import execute_intent
 from voice_assistant.nlu.intent import parse_voice_intent
-from voice_assistant.nlu.wake_word import active_wake_word_detector, is_wake_word
+from voice_assistant.nlu.wake_word import active_wake_word_detector
 from voice_assistant.services.commands import drain_speech_queue
 from voice_assistant.speech.audio import record_user_speech
 from voice_assistant.speech.stt import STTNetworkError, transcribe_audio
@@ -20,16 +20,13 @@ def run_assistant_step() -> None:
     logger.debug("--- Ожидание активации... ---")
     detector = active_wake_word_detector()
 
-    if detector is not None and detector.name != "fuzzy":
-        activation_text = _listen_for_wake_word_streaming(detector)
-    else:
-        activation_text = _listen_text_or_none(
-            timeout_ms=settings.wake_timeout_ms, stage="activation", play_beep=False
-        )
-
-    if not activation_text:
+    if detector is None:
+        logger.error("Модель активации не загружена")
+        speak("Модель активации не загружена.")
         return
-    if (detector is None or detector.name == "fuzzy") and not is_wake_word(activation_text):
+
+    activation_text = _listen_for_wake_word_streaming(detector)
+    if not activation_text:
         return
 
     speak("Слушаю.")
@@ -45,15 +42,14 @@ def run_assistant_step() -> None:
 
 
 def _listen_for_wake_word_streaming(detector: Any) -> str | None:
-    """Стримит чанки аудио в детектор wake word (Vosk).
+    """Стримит чанки аудио в детектор wake word (openWakeWord).
 
     Записывает аудио, параллельно питая детектор чанками. При детекции —
-    возвращает распознанное слово (без обращения к Google). При таймауте — None.
+    возвращает распознанное слово. При таймауте — None.
     """
-    detected: list[str | None] = [None]
+    detector.reset()
 
-    if hasattr(detector, "reset"):
-        detector.reset()
+    detected: list[str | None] = [None]
 
     def on_chunk(chunk: Any) -> None:
         word = detector.detect_chunk(chunk)

@@ -6,7 +6,6 @@ from voice_assistant.config import Intent, IntentRule, _load_settings
 def test_settings_defaults():
     s = _load_settings()
     assert s.wake_word == "вики"
-    assert s.wake_threshold == 70
     assert s.wake_timeout_ms == 30000
     assert s.command_timeout_ms == 6000
     assert s.samplerate == 16000
@@ -18,6 +17,7 @@ def test_settings_defaults():
     assert s.openweather_api_key == ""
     assert s.tts_provider == "google"
     assert s.tts_cache_size == 50
+    assert s.wake_word_detector == "openwakeword"
 
 
 def test_settings_tts_provider_from_env(monkeypatch):
@@ -83,9 +83,3 @@ def test_now_playing_rule():
     now_playing = [r for r in s.intent_rules if r.intent == Intent.NOW_PLAYING]
     assert len(now_playing) == 1
     assert "название" in now_playing[0].keywords
-
-
-def test_wake_aliases():
-    s = _load_settings()
-    assert "вики" in s.wake_aliases
-    assert "вика" in s.wake_aliases

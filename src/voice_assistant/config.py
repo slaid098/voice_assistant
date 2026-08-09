@@ -30,7 +30,6 @@ class IntentRule:
 @dataclass(frozen=True)
 class Settings:
     wake_word: str
-    wake_threshold: int
     wake_timeout_ms: int
     command_timeout_ms: int
     samplerate: int
@@ -46,7 +45,6 @@ class Settings:
     stt_language: str
     wake_word_detector: str
     max_misunderstand: int
-    wake_aliases: list[str]
     junk_words: list[str]
     cmd_junk: list[str]
     intent_rules: list[IntentRule]
@@ -57,26 +55,8 @@ class Settings:
 
 
 def _load_settings() -> Settings:
-    wake_aliases_env = os.getenv("WAKE_ALIASES", "")
-    wake_aliases = (
-        [a.strip().lower() for a in wake_aliases_env.split(",") if a.strip()]
-        if wake_aliases_env
-        else [
-            "вики",
-            "wiki",
-            "вика",
-            "ники",
-            "мики",
-            "фрики",
-            "вику",
-            "вике",
-            "викки",
-        ]
-    )
-
     return Settings(
         wake_word=os.getenv("WAKE_WORD", "вики").strip().lower(),
-        wake_threshold=int(os.getenv("WAKE_THRESHOLD", "70")),
         wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "30000")),
         command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
         samplerate=int(os.getenv("SAMPLERATE", "16000")),
@@ -90,9 +70,8 @@ def _load_settings() -> Settings:
         tts_cache_size=int(os.getenv("TTS_CACHE_SIZE", "50")),
         stt_provider=os.getenv("STT_PROVIDER", "google").strip().lower(),
         stt_language=os.getenv("STT_LANGUAGE", "ru-RU").strip(),
-        wake_word_detector=os.getenv("WAKE_WORD_DETECTOR", "vosk").strip().lower(),
+        wake_word_detector=os.getenv("WAKE_WORD_DETECTOR", "openwakeword").strip().lower(),
         max_misunderstand=int(os.getenv("MAX_MISUNDERSTAND", "3")),
-        wake_aliases=wake_aliases,
         junk_words=[
             "пожалуйста",
             "про",

@@ -52,13 +52,14 @@ def parse_voice_intent(text: str) -> dict[str, Any] | None:
 
 
 def _strip_wake_word(text: str) -> str:
-    """Удаляет wake-слова и мусорные слова из текста."""
+    """Удаляет wake-слово и мусорные слова из текста."""
+    wake = settings.wake_word
     words = text.lower().strip().split()
     cleaned_words = []
 
     for word in words:
         clean_word = re.sub(r"[^\w\sА-Яа-яЁё]", "", word)
-        if clean_word in settings.wake_aliases or clean_word in settings.junk_words:
+        if clean_word == wake or clean_word in settings.junk_words:
             continue
         cleaned_words.append(word)
 

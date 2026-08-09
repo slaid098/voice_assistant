@@ -9,7 +9,7 @@
 ## Project: Voice Assistant
 
 Voice assistant for visually impaired users. Russian language. Google STT + gTTS.
-Vosk for local wake-word detection (instant, offline).
+openWakeWord for neural wake-word detection (instant, offline, ONNX).
 
 ### Architecture
 - `src/voice_assistant/` — package (src/ layout)
@@ -20,7 +20,7 @@ Vosk for local wake-word detection (instant, offline).
 - `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Piper + pygame), `mixer.py`, `text_normalize.py` (транслитерация EN→RU + clean_title)
   - `providers/stt/` — `base.py` (STTProvider Protocol), `google_stt.py`, `vosk_stt.py`
   - `providers/` — `base.py` (TTSProvider Protocol), `google_tts.py`, `piper_tts.py`
-- `nlu/` — `wake_word.py` (WakeWordDetector Protocol + Fuzzy/Vosk detectors), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
+- `nlu/` — `wake_word.py` (WakeWordDetector Protocol + OpenWakeWordDetector), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
 - `services/` — `browser.py`, `commands.py`, `weather.py`, `youtube.py`, `youtube_flow.py`
 - `assets/sounds/` — единая папка аудио-ассетов:
   - `earcons/{1,2,3,4}.mp3` — звуковые ярлыки (бипы)
@@ -41,9 +41,7 @@ Vosk for local wake-word detection (instant, offline).
 
 ### Configuration (.env)
 - `WAKE_WORD` — activation word (default: "вики")
-- `WAKE_ALIASES` — comma-separated aliases for fuzzy matching
-- `WAKE_THRESHOLD` — fuzzy match threshold (default: 70)
-- `WAKE_WORD_DETECTOR` — wake word engine: `vosk` / `fuzzy` (default: `vosk`)
+- `WAKE_WORD_DETECTOR` — wake word engine: `openwakeword` (default: `openwakeword`)
 - `STT_PROVIDER` — command recognition: `google` / `vosk` / `auto` (default: `google`)
 - `STT_LANGUAGE` — Google STT language (default: `ru-RU`)
 - `MAX_MISUNDERSTAND` — max consecutive misunderstandings (default: 3)
@@ -71,20 +69,21 @@ Vosk for local wake-word detection (instant, offline).
 ### Implemented providers
 - **STT**: Google (cloud, online) + Vosk (local, offline) — STTProvider Protocol, dispatch by STT_PROVIDER
 - **TTS**: Google (cloud) + Piper (local, ONNX) + Vosk TTS (local, ONNX) — TTSProvider Protocol, dispatch by TTS_PROVIDER
-- **Wake word**: Vosk (local, grammar + fuzzy threshold) + Fuzzy (text, Google path) — WakeWordDetector Protocol
-- Auto-fallback: Vosk model not loaded → fuzzy+Google path (user doesn't notice)
+- **Wake word**: openWakeWord (neural, ONNX) — единственный детектор, WakeWordDetector Protocol
+- Если модель openWakeWord не загрузилась — wake-word недоступен (нет fuzzy backup)
 
 ### Models (separate folder, not in exe)
 - `models/piper/` — Piper TTS model (.onnx + .json, ~60MB)
-- `models/vosk_stt/` — Vosk STT + wake word model (~45MB)
+- `models/vosk_stt/` — Vosk STT model (~45MB)
 - `models/vosk_tts/` — Vosk TTS model (~135MB, 5 speakers)
+- `models/openwakeword/wiki.onnx` — openWakeWord wake-word model (~201KB, обучена на Vast.ai)
 - `speech/model_loader.py` — resolves paths, auto-download fallback for Vosk TTS
 - Release ZIP includes all models; auto-download only if missing
 
 ### Future enhancements (architecture prepared, not implemented)
 - Offline TTS: Silero / RHVoice (Protocol: `speech/tts.py`)
-- Keyword spotting: openWakeWord as new WakeWordDetector (Protocol ready in `nlu/wake_word.py`)
 - Whisper.cpp as new STTProvider (Protocol ready in `speech/providers/stt/base.py`)
+- Дообучение wiki.onnx: больше steps/данных для роста recall (сейчас 26%)
 
 ### Commands
 ```bash
