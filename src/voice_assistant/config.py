@@ -52,6 +52,7 @@ class Settings:
     vosk_stt_model: str
     vosk_tts_model: str
     vosk_tts_speaker: int
+    browser_path: str
 
 
 def _load_settings() -> Settings:
@@ -207,6 +208,7 @@ def _load_settings() -> Settings:
         vosk_stt_model=os.getenv("VOSK_STT_MODEL", "vosk-model-small-ru-0.22").strip(),
         vosk_tts_model=os.getenv("VOSK_TTS_MODEL", "vosk-model-tts-ru-0.7-multi").strip(),
         vosk_tts_speaker=int(os.getenv("VOSK_TTS_SPEAKER", "2")),
+        browser_path=os.getenv("BROWSER_PATH", "").strip(),
     )
 
 
