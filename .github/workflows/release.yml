@@ -72,10 +72,4 @@ jobs:
 
       - name: Create Forgejo release
         shell: powershell
-        run: |
-          $headers = @{ "Authorization" = "token $env:GITHUB_TOKEN" }
-          $changelog = [string](Get-Content CHANGELOG.md -Raw -Encoding UTF8)
-          $body = @{ tag_name = "$env:GITHUB_REF_NAME"; name = "$env:GITHUB_REF_NAME"; body = $changelog } | ConvertTo-Json -Depth 10
-          $resp = Invoke-RestMethod -Uri "$env:GITHUB_SERVER_URL/api/v1/repos/slaid098/voice_assistant/releases" -Method Post -Headers $headers -Body $body -ContentType "application/json"
-          $uploadUrl = "$env:GITHUB_SERVER_URL/api/v1/repos/slaid098/voice_assistant/releases/$($resp.id)/assets"
-          curl.exe -L -H "Authorization: token $env:GITHUB_TOKEN" -F "attachment=@dist/voice-assistant.zip;filename=voice-assistant.zip;type=application/zip" "$uploadUrl"
+        run: python scripts/create_release.py
