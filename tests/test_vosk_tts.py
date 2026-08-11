@@ -59,7 +59,7 @@ def test_vosk_tts_active_providers(monkeypatch):
     monkeypatch.setattr(tts_mod, "settings", vosk_settings)
     providers = tts_mod._active_providers()
     assert providers[0].name == "vosk"
-    assert len(providers) == 3
+    assert len(providers) == 2
 
 
 class TestSanitizeForVosk:

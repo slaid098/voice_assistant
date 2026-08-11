@@ -21,9 +21,9 @@ def test_settings_defaults():
 
 
 def test_settings_tts_provider_from_env(monkeypatch):
-    monkeypatch.setenv("TTS_PROVIDER", "piper")
+    monkeypatch.setenv("TTS_PROVIDER", "vosk")
     s = _load_settings()
-    assert s.tts_provider == "piper"
+    assert s.tts_provider == "vosk"
 
 
 def test_settings_silence_limit_from_env(monkeypatch):

@@ -25,24 +25,6 @@ def test_models_dir_frozen_mode(monkeypatch, tmp_path):
     assert result == tmp_path / "models"
 
 
-def test_piper_model_path(monkeypatch):
-    """Путь к модели Piper строится из settings.piper_model."""
-    from voice_assistant.speech import model_loader
-
-    monkeypatch.setattr(model_loader, "models_dir", lambda: Path("/fake/models"))
-    result = model_loader.piper_model_path()
-    assert result == Path("/fake/models/piper/ru_RU-irina-medium.onnx")
-
-
-def test_piper_config_path(monkeypatch):
-    """Конфиг Piper — .onnx.json рядом с моделью."""
-    from voice_assistant.speech import model_loader
-
-    monkeypatch.setattr(model_loader, "models_dir", lambda: Path("/fake/models"))
-    result = model_loader.piper_config_path()
-    assert result.name == "ru_RU-irina-medium.onnx.json"
-
-
 def test_vosk_stt_model_path(monkeypatch):
     from voice_assistant.speech import model_loader
 

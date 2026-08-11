@@ -55,7 +55,7 @@ def make_sound(sound: Sound, *, block: bool = True) -> None:
 
 
 def speak_with_fallback(text: str) -> None:
-    """Озвучивает текст с fallback: Google → Piper → звук ошибки.
+    """Озвучивает текст с fallback: Google → Vosk → звук ошибки.
 
     Импортирует speak() лениво, чтобы избежать цикла sounds ↔ tts.
     """

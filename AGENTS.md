@@ -17,9 +17,9 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 - `assistant.py` — orchestrator (thin: wake → listen → intent → execute)
 - `config.py` — `Settings` frozen dataclass, `Intent` StrEnum, `IntentRule` dataclass
 - `audio/sounds.py` — 4 earcons (mp3) via pygame.mixer, `@with_sound_effects`
-- `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Piper + pygame), `mixer.py`, `text_normalize.py` (транслитерация EN→RU + clean_title)
+- `speech/` — `audio.py` (VAD + on_chunk streaming), `stt.py` (facade: dispatch by STT_PROVIDER), `tts.py` (gTTS/Vosk + pygame), `mixer.py`, `text_normalize.py` (транслитерация EN→RU + clean_title)
   - `providers/stt/` — `base.py` (STTProvider Protocol), `google_stt.py`, `vosk_stt.py`
-  - `providers/` — `base.py` (TTSProvider Protocol), `google_tts.py`, `piper_tts.py`
+  - `providers/` — `base.py` (TTSProvider Protocol), `google_tts.py`, `vosk_tts.py`
 - `nlu/` — `wake_word.py` (WakeWordDetector Protocol + OpenWakeWordDetector), `intent.py` (fuzzy parser), `handlers.py` (strategy dispatch)
 - `services/` — `browser.py`, `commands.py`, `weather.py`, `youtube.py`, `youtube_flow.py`
 - `assets/sounds/` — единая папка аудио-ассетов:
@@ -28,7 +28,7 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 - `scripts/` — `gen_phrases.py` (предгенерация фраз), `install_autorun.bat` / `remove_autorun.bat` (автозагрузка Windows)
 
 ### Sound triggers
-- `Sound.STARTUP` (3) — once at boot (after full init: Piper + Vosk STT + Vosk TTS loaded, before listening loop)
+- `Sound.STARTUP` (3) — once at boot (after full init: Vosk STT + Vosk TTS loaded, before listening loop)
 - `Sound.READY_TO_LISTEN` (1) — before each VAD recording (not on wake word with Vosk)
 - `Sound.SEARCH_STARTED` (2) — YouTube query accepted
 - `Sound.DONE` (4) — after command execution / error / timeout (single, on top level)
@@ -48,9 +48,8 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 - `OPENWEATHER_API_KEY` — weather API key
 - `WEATHER_DEFAULT_CITY` — default city (default: "Костюковка")
 - `YOUTUBE_SEARCH_LIMIT` — search results count (default: 10)
-- `TTS_PROVIDER` — TTS engine: `google` / `piper` / `vosk` / `auto` (default: `google`)
+- `TTS_PROVIDER` — TTS engine: `google` / `vosk` / `auto` (default: `google`)
 - `TTS_CACHE_SIZE` — LRU cache size for dynamic phrases (default: 50)
-- `PIPER_MODEL` — Piper model filename (default: `ru_RU-irina-medium.onnx`)
 - `VOSK_STT_MODEL` — Vosk STT model dir (default: `vosk-model-small-ru-0.22`)
 - `VOSK_TTS_MODEL` — Vosk TTS model dir (default: `vosk-model-tts-ru-0.7-multi`)
 - `VOSK_TTS_SPEAKER` — Vosk TTS speaker ID 0-4 (default: 2 = Irina)
@@ -68,12 +67,11 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 
 ### Implemented providers
 - **STT**: Google (cloud, online) + Vosk (local, offline) — STTProvider Protocol, dispatch by STT_PROVIDER
-- **TTS**: Google (cloud) + Piper (local, ONNX) + Vosk TTS (local, ONNX) — TTSProvider Protocol, dispatch by TTS_PROVIDER
+- **TTS**: Google (cloud) + Vosk TTS (local, ONNX) — TTSProvider Protocol, dispatch by TTS_PROVIDER
 - **Wake word**: openWakeWord (neural, ONNX) — единственный детектор, WakeWordDetector Protocol
 - Если модель openWakeWord не загрузилась — wake-word недоступен (нет fuzzy backup)
 
 ### Models (separate folder, not in exe)
-- `models/piper/` — Piper TTS model (.onnx + .json, ~60MB)
 - `models/vosk_stt/` — Vosk STT model (~45MB)
 - `models/vosk_tts/` — Vosk TTS model (~135MB, 5 speakers)
 - `models/openwakeword/wiki.onnx` — openWakeWord wake-word model (~201KB, обучена на Vast.ai)

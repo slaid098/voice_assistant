@@ -28,15 +28,6 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --extra dev
 
-      - name: Download Piper voice model
-        shell: pwsh
-        run: |
-          $dir = "dist/models/piper"
-          New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          $base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium"
-          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx" -OutFile "$dir/ru_RU-irina-medium.onnx"
-          Invoke-WebRequest -Uri "$base/ru_RU-irina-medium.onnx.json" -OutFile "$dir/ru_RU-irina-medium.onnx.json"
-
       - name: Download Vosk STT model
         shell: pwsh
         run: |
@@ -63,7 +54,6 @@ jobs:
           uv run pyinstaller --noconfirm --onefile `
             --name voice-assistant `
             --collect-data voice_assistant `
-            --collect-all piper `
             --collect-all vosk `
             --collect-all vosk_tts `
             src/voice_assistant/__main__.py

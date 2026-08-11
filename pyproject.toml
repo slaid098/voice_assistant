@@ -25,7 +25,6 @@ classifiers = [
 dependencies = [
     "SpeechRecognition>=3.16.0",
     "gTTS>=2.5.0",
-    "piper-tts>=1.4.0",
     "pygame>=2.6.0",
     "sounddevice>=0.5.0",
     "yt-dlp>=2026.0.0",

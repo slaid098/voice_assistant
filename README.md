@@ -51,9 +51,8 @@ uv run voice-assistant
 | `CHUNK_MS` | Размер чанка записи (мс) | `100` |
 | `VAD_THRESHOLD` | Порог определения голоса (RMS) | `200.0` |
 | `SILENCE_LIMIT_MS` | Тишина для конца фразы (мс) | `1800` |
-| `TTS_PROVIDER` | Провайдер речи: `google` / `piper` / `vosk` / `auto` | `google` |
+| `TTS_PROVIDER` | Провайдер речи: `google` / `vosk` / `auto` | `google` |
 | `TTS_CACHE_SIZE` | Размер кэша динамических фраз | `50` |
-| `PIPER_MODEL` | Модель Piper TTS | `ru_RU-irina-medium.onnx` |
 | `VOSK_STT_MODEL` | Модель Vosk STT | `vosk-model-small-ru-0.22` |
 | `VOSK_TTS_MODEL` | Модель Vosk TTS | `vosk-model-tts-ru-0.7-multi` |
 | `VOSK_TTS_SPEAKER` | Спикер Vosk TTS 0-4 | `2` |

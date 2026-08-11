@@ -23,19 +23,19 @@ def test_speak_uses_google_when_available(monkeypatch):
     mock_google.synthesize.assert_called_with("привет")
 
 
-def test_speak_fallback_to_piper(monkeypatch):
+def test_speak_fallback_to_local(monkeypatch):
     import voice_assistant.speech.tts as tts_mod
 
     mock_google = _make_mock_provider(is_cloud=True, available=False)
-    mock_piper = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
+    mock_local = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
 
-    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_piper])
+    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_local])
     monkeypatch.setattr(tts_mod, "_play_bytes", MagicMock())
 
     tts_mod.speak("привет")
 
     mock_google.synthesize.assert_not_called()
-    mock_piper.synthesize.assert_called_with("привет")
+    mock_local.synthesize.assert_called_with("привет")
 
 
 def test_speak_fallback_on_exception(monkeypatch):
@@ -44,25 +44,25 @@ def test_speak_fallback_on_exception(monkeypatch):
     mock_google = _make_mock_provider(is_cloud=True, available=True)
     mock_google.synthesize.side_effect = Exception("network error")
 
-    mock_piper = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
+    mock_local = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
 
-    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_piper])
+    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_local])
     monkeypatch.setattr(tts_mod, "_play_bytes", MagicMock())
 
     tts_mod.speak("привет")
 
     mock_google.synthesize.assert_called_once()
-    mock_piper.synthesize.assert_called_once()
+    mock_local.synthesize.assert_called_once()
 
 
 def test_speak_all_fail_makes_error_sound(monkeypatch):
     import voice_assistant.speech.tts as tts_mod
 
     mock_google = _make_mock_provider(is_cloud=True, available=False)
-    mock_piper = _make_mock_provider(is_cloud=False, available=False)
+    mock_local = _make_mock_provider(is_cloud=False, available=False)
 
     mock_callback = MagicMock()
-    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_piper])
+    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_google, mock_local])
 
     tts_mod.speak("привет", on_all_fail=mock_callback)
 
@@ -112,14 +112,14 @@ def test_local_provider_not_cached(monkeypatch):
     """Local-провайдер: синтез каждый раз, кэш не растёт."""
     import voice_assistant.speech.tts as tts_mod
 
-    mock_piper = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
-    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_piper])
+    mock_local = _make_mock_provider(is_cloud=False, available=True, audio=b"RIFFwav")
+    monkeypatch.setattr(tts_mod, "_active_providers", lambda: [mock_local])
     monkeypatch.setattr(tts_mod, "_play_bytes", MagicMock())
 
     tts_mod._dynamic_cache.clear()
     tts_mod.speak("Гомель, плюс тепло")
     tts_mod.speak("Гомель, плюс тепло")
-    assert mock_piper.synthesize.call_count == 2
+    assert mock_local.synthesize.call_count == 2
     assert len(tts_mod._dynamic_cache) == 0
     tts_mod._dynamic_cache.clear()
 

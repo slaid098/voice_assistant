@@ -4,7 +4,6 @@
 (разработка). Каждый провайдер имеет свою подпапку:
 
     models/
-    ├── piper/          ← PIPER_MODEL (.onnx + .json)
     ├── vosk_stt/       ← VOSK_STT_MODEL (папка модели)
     └── vosk_tts/       ← VOSK_TTS_MODEL (папка модели)
 
@@ -30,16 +29,6 @@ def models_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent / "models"
     return Path.cwd() / "models"
-
-
-def piper_model_path() -> Path:
-    """Путь к .onnx файлу модели Piper."""
-    return models_dir() / "piper" / settings.piper_model
-
-
-def piper_config_path() -> Path:
-    """Путь к .json конфигу модели Piper (рядом с .onnx)."""
-    return piper_model_path().with_suffix(".onnx.json")
 
 
 def vosk_stt_model_path() -> Path:

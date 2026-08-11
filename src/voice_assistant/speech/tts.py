@@ -1,5 +1,4 @@
 import io
-import threading
 from collections import OrderedDict
 from collections.abc import Callable
 
@@ -10,7 +9,6 @@ from voice_assistant.config import settings
 from voice_assistant.speech.mixer import ensure_mixer as _ensure_mixer
 from voice_assistant.speech.providers.base import TTSProvider
 from voice_assistant.speech.providers.google_tts import google_tts
-from voice_assistant.speech.providers.piper_tts import piper_tts
 from voice_assistant.speech.providers.vosk_tts import vosk_tts
 from voice_assistant.speech.text_normalize import normalize_for_tts
 
@@ -26,7 +24,7 @@ def speak(text: str, *, on_all_fail: Callable[[], None] | None = None) -> None:
     Логика по типу провайдера:
       - cloud (Google): фиксированные фразы из ассетов → LRU-кэш динамики →
         синтез через сеть с кэшированием результата. Fallback на local.
-      - local (Piper): синтез на лету, без кэша (мгновенно локально).
+      - local (Vosk): синтез на лету, без кэша (мгновенно локально).
       - auto: local → cloud (локальный быстрее, cloud как резерв).
 
     Args:
@@ -92,16 +90,13 @@ def _synthesize_first_available(providers: list[TTSProvider], text: str) -> bool
 def _active_providers() -> list[TTSProvider]:
     """Возвращает провайдеры согласно настройке TTS_PROVIDER.
 
-    google → [google, piper] (cloud основной, local fallback)
-    piper → [piper, google] (local основной, cloud fallback)
-    vosk  → [vosk, google, piper] (local основной, cloud+local fallback)
-    auto  → [piper, google] (local быстрее, cloud как резерв)
+    google → [google, vosk]   (cloud основной, local fallback)
+    vosk   → [vosk, google]   (local основной, cloud fallback)
+    auto   → [vosk, google]   (local основной, cloud fallback)
     """
-    if settings.tts_provider in {"piper", "auto"}:
-        return [piper_tts, google_tts]
-    if settings.tts_provider == "vosk":
-        return [vosk_tts, google_tts, piper_tts]
-    return [google_tts, piper_tts]
+    if settings.tts_provider in {"vosk", "auto"}:
+        return [vosk_tts, google_tts]
+    return [google_tts, vosk_tts]
 
 
 def _try_cloud_cache(provider: TTSProvider, text: str) -> bool:
@@ -166,26 +161,3 @@ def _play_sound(sound: pygame.mixer.Sound) -> None:
             pygame.time.wait(50)
     except Exception as ex:
         logger.bind(error=ex).warning("Не удалось воспроизвести звук")
-
-
-def preload_piper(*, wait: bool = False) -> None:
-    """Предзагружает модель Piper (если провайдер активен).
-
-    Args:
-        wait: True — блокировать до завершения загрузки (для стартового бипа).
-              False (по умолчанию) — загрузка в фоновом потоке.
-    """
-    providers = _active_providers()
-    if piper_tts not in providers:
-        return
-
-    def _load() -> None:
-        try:
-            piper_tts.is_available()
-        except Exception as ex:
-            logger.bind(error=ex).warning("Не удалось предзагрузить Piper")
-
-    thread = threading.Thread(target=_load, daemon=True)
-    thread.start()
-    if wait:
-        thread.join()

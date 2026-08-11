@@ -7,7 +7,7 @@ class TTSProvider(Protocol):
     Классификация провайдеров по типу синтеза:
       - is_cloud=True  — сетевой синтез (Google, Яндекс, Azure): дорогой запрос,
         результат кэшируется в LRU-кэше динамики.
-      - is_cloud=False — локальный синтез (Piper, Silero, RHVoice): мгновенный,
+      - is_cloud=False — локальный синтез (Vosk TTS, Silero, RHVoice): мгновенный,
         без кэширования.
     """
 
