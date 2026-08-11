@@ -1,7 +1,13 @@
-"""Create Forgejo release and upload asset. Called from release.yml."""
+"""Create Forgejo release and upload asset. Called from release.yml.
+
+Idempotent: if a release for this tag already exists (e.g. from a previous
+failed run), it is deleted before creating a new one. This prevents
+HTTP 409 Conflict errors.
+"""
 
 import json
 import os
+import urllib.error
 import urllib.request
 import uuid
 
@@ -9,22 +15,40 @@ server = os.environ["GITHUB_SERVER_URL"]
 token = os.environ["GITHUB_TOKEN"]
 tag = os.environ["GITHUB_REF_NAME"]
 repo = "slaid098/voice_assistant"
+headers = {"Authorization": f"token {token}"}
+
+
+def api_request(path: str, method: str = "GET", data: bytes | None = None) -> object:
+    url = f"{server}/api/v1/repos/{repo}/{path}"
+    req = urllib.request.Request(  # noqa: S310
+        url,
+        data=data,
+        headers={**headers, "Content-Type": "application/json"} if data else headers,
+        method=method,
+    )
+    with urllib.request.urlopen(req) as resp:  # noqa: S310
+        body = resp.read()
+        return json.loads(body) if body else None
+
 
 with open("CHANGELOG.md", encoding="utf-8") as f:
     note = f.read()
 
+# Delete existing release for this tag if present (idempotency)
+try:
+    existing = api_request("releases")
+    for rel in existing if isinstance(existing, list) else []:
+        if rel.get("tag_name") == tag:
+            print(f"Deleting existing release id={rel['id']} for tag={tag}")
+            api_request(f"releases/{rel['id']}", method="DELETE")
+except urllib.error.HTTPError:
+    pass
+
 # Create release
 data = json.dumps({"tag_name": tag, "name": tag, "body": note}).encode()
-req = urllib.request.Request(  # noqa: S310
-    f"{server}/api/v1/repos/{repo}/releases",
-    data=data,
-    headers={"Authorization": f"token {token}", "Content-Type": "application/json"},
-    method="POST",
-)
-with urllib.request.urlopen(req) as resp:  # noqa: S310
-    release = json.loads(resp.read())
-    release_id = release["id"]
-    print(f"Release created: id={release_id}, tag={tag}")
+release = api_request("releases", method="POST", data=data)
+release_id = release["id"]  # type: ignore[index]
+print(f"Release created: id={release_id}, tag={tag}")
 
 # Upload asset using multipart/form-data
 boundary = uuid.uuid4().hex
