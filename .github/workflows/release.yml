@@ -48,7 +48,7 @@ jobs:
       - name: Build with PyInstaller
         shell: powershell
         run: |
-          uv run pyinstaller --noconfirm --onefile `
+          uv run pyinstaller --noconfirm --onedir `
             --name voice-assistant `
             --collect-data voice_assistant `
             --collect-all vosk `
@@ -62,12 +62,16 @@ jobs:
       - name: Package release
         shell: powershell
         run: |
-          Copy-Item .env.template dist/.env
-          Copy-Item README.md dist/
-          Copy-Item CHANGELOG.md dist/
-          Copy-Item scripts/install_autorun.bat dist/
-          Copy-Item scripts/remove_autorun.bat dist/
-          Compress-Archive -Path dist/voice-assistant.exe,dist/models,dist/.env,dist/README.md,dist/CHANGELOG.md,dist/install_autorun.bat,dist/remove_autorun.bat `
+          Copy-Item .env.template dist/voice-assistant/.env
+          Copy-Item README.md dist/voice-assistant/
+          Copy-Item CHANGELOG.md dist/voice-assistant/
+          Copy-Item scripts/install_autorun.bat dist/voice-assistant/
+          Copy-Item scripts/remove_autorun.bat dist/voice-assistant/
+          New-Item -ItemType Directory -Force -Path dist/voice-assistant/models | Out-Null
+          Copy-Item -Recurse dist/models/vosk_stt dist/voice-assistant/models/
+          Copy-Item -Recurse dist/models/vosk_tts dist/voice-assistant/models/
+          Copy-Item -Recurse dist/models/openwakeword dist/voice-assistant/models/
+          Compress-Archive -Path dist/voice-assistant `
             -DestinationPath dist/voice-assistant.zip
 
       - name: Create Forgejo release

@@ -206,3 +206,28 @@ def test_active_detector_failure_cached(monkeypatch):
     assert second is None
     assert call_count == 1
     assert ww_mod._load_failed is True
+
+
+def test_openwakeword_model_real_init() -> None:
+    """Integration: реальное создание Model с wiki.onnx.
+
+    Ловит API mismatch (wakeword_models vs wakeword_model_paths),
+    который мок-тесты пропускают. wiki.onnx (201KB) в репо.
+    """
+    from pathlib import Path
+
+    model_path = Path("models/openwakeword/wiki.onnx")
+    if not model_path.exists():
+        import pytest
+
+        pytest.skip("wiki.onnx не найден — запуск из корня репо")
+
+    from openwakeword.model import Model
+
+    model = Model(wakeword_model_paths=[str(model_path)])
+
+    import numpy as np
+
+    chunk = np.zeros(1280, dtype=np.int16)
+    scores = model.predict(chunk)
+    assert isinstance(scores, dict)

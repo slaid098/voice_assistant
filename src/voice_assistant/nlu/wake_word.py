@@ -69,7 +69,7 @@ class OpenWakeWordDetector:
         try:
             from openwakeword.model import Model  # noqa: PLC0415 — optional dependency
 
-            self._model = Model(wakeword_models=[str(model_path)])
+            self._model = Model(wakeword_model_paths=[str(model_path)])
             logger.info(f"openWakeWord детектор готов: {model_path}")
         except Exception as ex:
             logger.bind(error=ex).opt(exception=True).warning(
