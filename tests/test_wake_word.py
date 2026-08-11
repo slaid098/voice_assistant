@@ -1,6 +1,9 @@
 """Тесты OpenWakeWordDetector.
 
 Мокаем openwakeword.model.Model — реальную ONNX-модель не загружаем.
+Путь alexa_v0.1.onnx существует в установленном пакете openwakeword —
+для «модель загрузилась» достаточно замокать только Model. Для «модель
+не загрузилась» патчим openwakeword.__file__ на несуществующий путь.
 """
 
 from unittest.mock import MagicMock, patch
@@ -11,16 +14,28 @@ import numpy as np
 def _make_detector_with_score(score: float):
     """Создаёт OpenWakeWordDetector с замоканной Model.predict.
 
-    predict всегда возвращает {'wiki': score}.
+    predict всегда возвращает {'alexa_v0.1': score}. Путь alexa_v0.1.onnx
+    существует в установленном пакете — достаточно замокать только Model.
     """
     fake_model = MagicMock()
-    fake_model.predict.return_value = {"wiki": score}
+    fake_model.predict.return_value = {"alexa_v0.1": score}
 
-    with (
-        patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path,
-        patch("openwakeword.model.Model", return_value=fake_model),
-    ):
-        mock_path.return_value.exists.return_value = True
+    with patch("openwakeword.model.Model", return_value=fake_model):
+        import voice_assistant.nlu.wake_word as ww_mod
+
+        detector = ww_mod.OpenWakeWordDetector()
+    return detector
+
+
+def _make_detector_without_model():
+    """Создаёт OpenWakeWordDetector с несуществующим путём модели → _model None.
+
+    Патчит openwakeword.__file__ на несуществующий путь, чтобы alexa_v0.1.onnx
+    не нашёлся и __init__ вышел без загрузки модели.
+    """
+    import openwakeword
+
+    with patch.object(openwakeword, "__file__", "/nonexistent/openwakeword/__init__.py"):
         import voice_assistant.nlu.wake_word as ww_mod
 
         detector = ww_mod.OpenWakeWordDetector()
@@ -28,11 +43,11 @@ def _make_detector_with_score(score: float):
 
 
 def test_openwakeword_detect_chunk_positive():
-    """score 0.7 (>= 0.5) → detect_chunk возвращает 'вики'."""
+    """score 0.7 (>= 0.5) → detect_chunk возвращает wake_word."""
     detector = _make_detector_with_score(0.7)
 
     chunk = np.zeros(1600, dtype=np.int16)
-    assert detector.detect_chunk(chunk) == "вики"
+    assert detector.detect_chunk(chunk) == "алекса"
 
 
 def test_openwakeword_detect_chunk_negative():
@@ -44,11 +59,11 @@ def test_openwakeword_detect_chunk_negative():
 
 
 def test_openwakeword_detect_chunk_boundary():
-    """score ровно 0.5 (>= 0.5) → detect_chunk возвращает 'вики'."""
+    """score ровно 0.5 (>= 0.5) → detect_chunk возвращает wake_word."""
     detector = _make_detector_with_score(0.5)
 
     chunk = np.zeros(1600, dtype=np.int16)
-    assert detector.detect_chunk(chunk) == "вики"
+    assert detector.detect_chunk(chunk) == "алекса"
 
 
 def test_openwakeword_is_available_true():
@@ -59,25 +74,16 @@ def test_openwakeword_is_available_true():
 
 def test_openwakeword_is_available_false():
     """Модель None (не загрузилась) → is_available() False."""
-    with patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path:
-        mock_path.return_value.exists.return_value = False
-        import voice_assistant.nlu.wake_word as ww_mod
-
-        detector = ww_mod.OpenWakeWordDetector()
+    detector = _make_detector_without_model()
     assert detector.is_available() is False
     chunk = np.zeros(1600, dtype=np.int16)
     assert detector.detect_chunk(chunk) is None
 
 
 def test_active_detector_openwakeword(monkeypatch):
-    """wake_word_detector='openwakeword' + модель доступна → OpenWakeWordDetector."""
-    import dataclasses
-
-    import voice_assistant.config as config_mod
+    """Модель доступна → OpenWakeWordDetector."""
     import voice_assistant.nlu.wake_word as ww_mod
 
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
-    monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
     monkeypatch.setattr(ww_mod, "_load_failed", False)
@@ -89,13 +95,8 @@ def test_active_detector_openwakeword(monkeypatch):
 
 def test_active_detector_unavailable(monkeypatch):
     """Модель не доступна → None."""
-    import dataclasses
-
-    import voice_assistant.config as config_mod
     import voice_assistant.nlu.wake_word as ww_mod
 
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
-    monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: False)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
     monkeypatch.setattr(ww_mod, "_load_failed", False)
@@ -117,13 +118,9 @@ def test_reset_clears_buffer():
     """reset() очищает буфер и вызывает model.reset()."""
     fake_model = MagicMock()
     fake_model.reset = MagicMock()
-    fake_model.predict.return_value = {"wiki": 0.0}
+    fake_model.predict.return_value = {"alexa_v0.1": 0.0}
 
-    with (
-        patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path,
-        patch("openwakeword.model.Model", return_value=fake_model),
-    ):
-        mock_path.return_value.exists.return_value = True
+    with patch("openwakeword.model.Model", return_value=fake_model):
         import voice_assistant.nlu.wake_word as ww_mod
 
         detector = ww_mod.OpenWakeWordDetector()
@@ -140,11 +137,7 @@ def test_reset_clears_buffer():
 
 def test_reset_when_model_none():
     """reset() работает безопасно, даже если модель не загрузилась."""
-    with patch("voice_assistant.nlu.wake_word.resolve_openwakeword_model") as mock_path:
-        mock_path.return_value.exists.return_value = False
-        import voice_assistant.nlu.wake_word as ww_mod
-
-        detector = ww_mod.OpenWakeWordDetector()
+    detector = _make_detector_without_model()
 
     detector.reset()
     assert detector._buf_len == 0
@@ -153,13 +146,8 @@ def test_reset_when_model_none():
 
 def test_active_detector_cached(monkeypatch):
     """active_wake_word_detector возвращает тот же объект при повторном вызове."""
-    import dataclasses
-
-    import voice_assistant.config as config_mod
     import voice_assistant.nlu.wake_word as ww_mod
 
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
-    monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
     monkeypatch.setattr(ww_mod, "_load_failed", False)
@@ -172,21 +160,10 @@ def test_active_detector_cached(monkeypatch):
 
 def test_active_detector_failure_cached(monkeypatch):
     """После первой неудачи — второй вызов не создаёт новый детектор."""
-    import dataclasses
-    from pathlib import Path
-
-    import voice_assistant.config as config_mod
     import voice_assistant.nlu.wake_word as ww_mod
 
-    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
-    monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
     monkeypatch.setattr(ww_mod, "_load_failed", False)
-    monkeypatch.setattr(
-        ww_mod,
-        "resolve_openwakeword_model",
-        lambda: Path("/nonexistent/wiki.onnx"),
-    )
 
     call_count = 0
     mock_instance = MagicMock()
@@ -209,25 +186,26 @@ def test_active_detector_failure_cached(monkeypatch):
 
 
 def test_openwakeword_model_real_init() -> None:
-    """Integration: реальное создание Model с wiki.onnx.
+    """Integration: реальное создание Model с alexa.
 
-    Ловит API mismatch (wakeword_models vs wakeword_model_paths),
-    который мок-тесты пропускают. wiki.onnx (201KB) в репо.
+    Alexa — pretrained модель из пакета openwakeword. Ловит API mismatch
+    (wakeword_models vs wakeword_model_paths).
     """
     from pathlib import Path
 
-    model_path = Path("models/openwakeword/wiki.onnx")
-    if not model_path.exists():
+    import openwakeword
+
+    alexa_path = Path(openwakeword.__file__).parent / "resources" / "models" / "alexa_v0.1.onnx"
+    if not alexa_path.exists():
         import pytest
 
-        pytest.skip("wiki.onnx не найден — запуск из корня репо")
+        pytest.skip("alexa_v0.1.onnx не найден в пакете openwakeword")
 
     from openwakeword.model import Model
 
-    model = Model(wakeword_model_paths=[str(model_path)])
-
-    import numpy as np
+    model = Model(wakeword_model_paths=[str(alexa_path)])
 
     chunk = np.zeros(1280, dtype=np.int16)
     scores = model.predict(chunk)
     assert isinstance(scores, dict)
+    assert "alexa_v0.1" in scores

@@ -2,16 +2,16 @@
 
 Единственный детектор — openWakeWord (нейросетевой, ONNX).
 Стримит чанки аудио в реальном времени, возвращает wake word при детекции.
-Модель wiki.onnx обучена на Vast.ai (FP/hour=0.0, recall 26%).
+Использует pretrained модель alexa_v0.1.onnx из пакета openwakeword (recall 90%+).
 """
 
+from pathlib import Path
 from typing import Any, Protocol
 
 import numpy as np
 from loguru import logger
 
 from voice_assistant.config import settings
-from voice_assistant.speech.model_loader import resolve_openwakeword_model
 
 
 class WakeWordDetector(Protocol):
@@ -61,16 +61,20 @@ class OpenWakeWordDetector:
         self._buffer: np.ndarray = np.zeros(self._buf_capacity, dtype=np.int16)
         self._buf_len: int = 0
 
-        model_path = resolve_openwakeword_model()
-        if not model_path.exists():
-            logger.warning(f"Модель openWakeWord не найдена: {model_path}")
-            return
-
         try:
+            import openwakeword  # noqa: PLC0415 — optional dependency
+
+            alexa_path = (
+                Path(openwakeword.__file__).parent / "resources" / "models" / "alexa_v0.1.onnx"
+            )
+            if not alexa_path.exists():
+                logger.warning(f"Модель alexa не найдена: {alexa_path}")
+                return
+
             from openwakeword.model import Model  # noqa: PLC0415 — optional dependency
 
-            self._model = Model(wakeword_model_paths=[str(model_path)])
-            logger.info(f"openWakeWord детектор готов: {model_path}")
+            self._model = Model(wakeword_model_paths=[str(alexa_path)])
+            logger.info(f"openWakeWord детектор готов: {alexa_path}")
         except Exception as ex:
             logger.bind(error=ex).opt(exception=True).warning(
                 "Не удалось загрузить модель openWakeWord"
@@ -134,14 +138,13 @@ _load_failed: bool = False
 
 
 def active_wake_word_detector() -> WakeWordDetector | None:
-    """Возвращает детектор согласно настройке WAKE_WORD_DETECTOR.
+    """Возвращает детектор слова активации (openWakeWord).
 
-    openwakeword → OpenWakeWordDetector (если доступен, иначе None).
-    Детектор кэшируется на уровне модуля — создаётся один раз при первом
-    вызове (или через preload_wake_word_detector при старте), чтобы не
-    пересоздавать ONNX-модель (~1-2s) на каждом цикле прослушивания.
-    При неудачной загрузке failure кэшируется (_load_failed) — повторные
-    вызовы возвращают None без retry, чтобы не плодить ошибки в цикле.
+    Единственный детектор — openWakeWord. Кэшируется на уровне модуля —
+    создаётся один раз при первом вызове (или через preload_wake_word_detector
+    при старте), чтобы не пересоздавать ONNX-модель (~1-2s) на каждом цикле
+    прослушивания. При неудачной загрузке failure кэшируется (_load_failed) —
+    повторные вызовы возвращают None без retry, чтобы не плодить ошибки в цикле.
     """
     global _cached_detector, _load_failed  # noqa: PLW0603 — module-level singleton pattern
 
@@ -150,16 +153,12 @@ def active_wake_word_detector() -> WakeWordDetector | None:
     if _load_failed:
         return None
 
-    if settings.wake_word_detector == "openwakeword":
-        detector = OpenWakeWordDetector()
-        if detector.is_available():
-            _cached_detector = detector
-            return detector
-        _load_failed = True
-        logger.error("openWakeWord детектор недоступен — модель не загружена")
-        return None
-
-    logger.error(f"Неизвестный детектор: {settings.wake_word_detector}")
+    detector = OpenWakeWordDetector()
+    if detector.is_available():
+        _cached_detector = detector
+        return detector
+    _load_failed = True
+    logger.error("openWakeWord детектор недоступен — модель не загружена")
     return None
 
 

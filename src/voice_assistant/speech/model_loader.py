@@ -41,11 +41,6 @@ def vosk_tts_model_path() -> Path:
     return models_dir() / "vosk_tts" / settings.vosk_tts_model
 
 
-def resolve_openwakeword_model() -> Path:
-    """Путь к .onnx файлу модели openWakeWord (wiki.onnx)."""
-    return models_dir() / "openwakeword" / "wiki.onnx"
-
-
 def ensure_vosk_tts_model() -> bool:
     """Проверяет наличие модели Vosk TTS, скачивает при отсутствии.
 

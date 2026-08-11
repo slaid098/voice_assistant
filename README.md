@@ -40,8 +40,7 @@ uv run voice-assistant
 
 | Переменная | Описание | По умолчанию |
 |-----------|----------|-------------|
-| `WAKE_WORD` | Слово активации | `вики` |
-| `WAKE_WORD_DETECTOR` | Детектор слова активации: `openwakeword` | `openwakeword` |
+| `WAKE_WORD` | Слово активации | `алекса` |
 | `STT_PROVIDER` | Провайдер распознавания команд: `google` / `vosk` / `auto` | `google` |
 | `STT_LANGUAGE` | Язык Google STT | `ru-RU` |
 | `WAKE_TIMEOUT_MS` | Таймаут ожидания активации (мс) | `30000` |

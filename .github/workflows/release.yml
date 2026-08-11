@@ -39,12 +39,6 @@ jobs:
           Expand-Archive -Path "$dir/vosk-model-tts-ru-0.7-multi.zip" -DestinationPath $dir -Force
           Remove-Item "$dir/vosk-model-tts-ru-0.7-multi.zip"
 
-      - name: Copy openWakeWord model
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path dist/models/openwakeword
-          Copy-Item models/openwakeword/wiki.onnx dist/models/openwakeword/
-
       - name: Build with PyInstaller
         shell: powershell
         run: |
@@ -70,7 +64,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist/voice-assistant/models | Out-Null
           Copy-Item -Recurse dist/models/vosk_stt dist/voice-assistant/models/
           Copy-Item -Recurse dist/models/vosk_tts dist/voice-assistant/models/
-          Copy-Item -Recurse dist/models/openwakeword dist/voice-assistant/models/
           Compress-Archive -Path dist/voice-assistant `
             -DestinationPath dist/voice-assistant.zip
 

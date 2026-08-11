@@ -40,8 +40,7 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 - `clean_title(title)` — очистка заголовков от скобок/эмодзи (используется YouTube, browser)
 
 ### Configuration (.env)
-- `WAKE_WORD` — activation word (default: "вики")
-- `WAKE_WORD_DETECTOR` — wake word engine: `openwakeword` (default: `openwakeword`)
+- `WAKE_WORD` — activation word (default: "алекса")
 - `STT_PROVIDER` — command recognition: `google` / `vosk` / `auto` (default: `google`)
 - `STT_LANGUAGE` — Google STT language (default: `ru-RU`)
 - `MAX_MISUNDERSTAND` — max consecutive misunderstandings (default: 3)
@@ -74,14 +73,14 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 ### Models (separate folder, not in exe)
 - `models/vosk_stt/` — Vosk STT model (~45MB)
 - `models/vosk_tts/` — Vosk TTS model (~135MB, 5 speakers)
-- `models/openwakeword/wiki.onnx` — openWakeWord wake-word model (~201KB, обучена на Vast.ai)
+- `alexa_v0.1.onnx` — openWakeWord wake-word model (pretrained, из пакета openwakeword, не отдельный файл)
 - `speech/model_loader.py` — resolves paths, auto-download fallback for Vosk TTS
-- Release ZIP includes all models; auto-download only if missing
+- Release ZIP includes Vosk models; alexa уже в _internal/openwakeword/ через --collect-all
 
 ### Future enhancements (architecture prepared, not implemented)
 - Offline TTS: Silero / RHVoice (Protocol: `speech/tts.py`)
 - Whisper.cpp as new STTProvider (Protocol ready in `speech/providers/stt/base.py`)
-- Дообучение wiki.onnx: больше steps/данных для роста recall (сейчас 26%)
+- Дообучение своей wake-word модели: больше steps/данных (сейчас alexa pretrained, recall 90%+)
 
 ### Commands
 ```bash

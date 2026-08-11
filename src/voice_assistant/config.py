@@ -43,7 +43,6 @@ class Settings:
     tts_cache_size: int
     stt_provider: str
     stt_language: str
-    wake_word_detector: str
     max_misunderstand: int
     junk_words: list[str]
     cmd_junk: list[str]
@@ -56,7 +55,7 @@ class Settings:
 
 def _load_settings() -> Settings:
     return Settings(
-        wake_word=os.getenv("WAKE_WORD", "вики").strip().lower(),
+        wake_word=os.getenv("WAKE_WORD", "алекса").strip().lower(),
         wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "30000")),
         command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
         samplerate=int(os.getenv("SAMPLERATE", "16000")),
@@ -70,7 +69,6 @@ def _load_settings() -> Settings:
         tts_cache_size=int(os.getenv("TTS_CACHE_SIZE", "50")),
         stt_provider=os.getenv("STT_PROVIDER", "google").strip().lower(),
         stt_language=os.getenv("STT_LANGUAGE", "ru-RU").strip(),
-        wake_word_detector=os.getenv("WAKE_WORD_DETECTOR", "openwakeword").strip().lower(),
         max_misunderstand=int(os.getenv("MAX_MISUNDERSTAND", "3")),
         junk_words=[
             "пожалуйста",
