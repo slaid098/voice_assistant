@@ -58,12 +58,6 @@ class NowPlayingHandler:
         make_sound(Sound.DONE)
 
 
-class SmallTalkHandler:
-    def execute(self, payload: str | None, *, listen: ListenFn) -> None:
-        speak("У меня всё хорошо. Чем помочь?")
-        make_sound(Sound.DONE)
-
-
 _HANDLERS: dict[str, IntentHandler] = {
     Intent.WEATHER.value: WeatherHandler(),
     Intent.TIME.value: SimpleCommandHandler(Intent.TIME.value),
@@ -72,7 +66,6 @@ _HANDLERS: dict[str, IntentHandler] = {
     Intent.YOUTUBE_SEARCH.value: YouTubeSearchHandler(),
     Intent.STOP.value: StopHandler(),
     Intent.NOW_PLAYING.value: NowPlayingHandler(),
-    Intent.SMALL_TALK.value: SmallTalkHandler(),
 }
 
 

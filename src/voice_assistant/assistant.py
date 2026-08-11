@@ -56,7 +56,7 @@ def _listen_for_wake_word_streaming(detector: Any) -> str | None:
         if word is not None:
             detected[0] = word
 
-    record_user_speech(timeout_ms=settings.wake_timeout_ms, on_chunk=on_chunk)
+    record_user_speech(timeout_ms=settings.wake_cache_reset_ms, on_chunk=on_chunk)
 
     if detected[0] is not None:
         logger.info(f"[wake word детектировано] {detected[0]}")

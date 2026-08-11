@@ -18,7 +18,7 @@ def test_weather():
     r = parse_voice_intent("погода москва")
     assert r is not None
     assert r["intent"] == "weather"
-    assert "москва" in r["payload"]
+    assert r["payload"] is None
 
 
 def test_time():

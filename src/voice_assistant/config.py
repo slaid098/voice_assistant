@@ -15,7 +15,6 @@ class Intent(StrEnum):
     HELP = "help"
     TIMER = "timer"
     NOW_PLAYING = "now_playing"
-    SMALL_TALK = "small_talk"
     UNKNOWN = "unknown"
 
 
@@ -30,7 +29,7 @@ class IntentRule:
 @dataclass(frozen=True)
 class Settings:
     wake_word: str
-    wake_timeout_ms: int
+    wake_cache_reset_ms: int
     command_timeout_ms: int
     samplerate: int
     chunk_ms: int
@@ -56,7 +55,7 @@ class Settings:
 def _load_settings() -> Settings:
     return Settings(
         wake_word=os.getenv("WAKE_WORD", "алекса").strip().lower(),
-        wake_timeout_ms=int(os.getenv("WAKE_TIMEOUT_MS", "30000")),
+        wake_cache_reset_ms=int(os.getenv("WAKE_CACHE_RESET_MS", "30000")),
         command_timeout_ms=int(os.getenv("COMMAND_TIMEOUT_MS", "6000")),
         samplerate=int(os.getenv("SAMPLERATE", "16000")),
         chunk_ms=int(os.getenv("CHUNK_MS", "100")),
@@ -123,7 +122,7 @@ def _load_settings() -> Settings:
                     "сколько градусов",
                 ],
                 threshold=65,
-                has_payload=True,
+                has_payload=False,
             ),
             IntentRule(
                 intent=Intent.TIME,
@@ -184,20 +183,6 @@ def _load_settings() -> Settings:
                     "что играет",
                 ],
                 threshold=65,
-                has_payload=False,
-            ),
-            IntentRule(
-                intent=Intent.SMALL_TALK,
-                keywords=[
-                    "как дела",
-                    "как ты",
-                    "что нового",
-                    "что нового у тебя",
-                    "как настроение",
-                    "ты тут",
-                    "ты здесь",
-                ],
-                threshold=70,
                 has_payload=False,
             ),
         ],

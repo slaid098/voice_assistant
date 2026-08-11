@@ -6,7 +6,7 @@ from voice_assistant.config import Intent, IntentRule, _load_settings
 def test_settings_defaults():
     s = _load_settings()
     assert s.wake_word == "алекса"
-    assert s.wake_timeout_ms == 30000
+    assert s.wake_cache_reset_ms == 30000
     assert s.command_timeout_ms == 6000
     assert s.samplerate == 16000
     assert s.chunk_ms == 100
@@ -64,7 +64,7 @@ def test_intent_enum_values():
 
 def test_intent_rules_count():
     s = _load_settings()
-    assert len(s.intent_rules) == 8
+    assert len(s.intent_rules) == 7
 
 
 def test_intent_rule_types():

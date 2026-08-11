@@ -43,7 +43,7 @@ uv run voice-assistant
 | `WAKE_WORD` | Слово активации | `алекса` |
 | `STT_PROVIDER` | Провайдер распознавания команд: `google` / `vosk` / `auto` | `google` |
 | `STT_LANGUAGE` | Язык Google STT | `ru-RU` |
-| `WAKE_TIMEOUT_MS` | Таймаут ожидания активации (мс) | `30000` |
+| `WAKE_CACHE_RESET_MS` | Сброс детектора wake word каждые N мс тишины | `30000` |
 | `COMMAND_TIMEOUT_MS` | Таймаут ожидания команды (мс) | `6000` |
 | `MAX_MISUNDERSTAND` | Максимум непониманий подряд | `3` |
 | `SAMPLERATE` | Частота микрофона (Гц) | `16000` |
