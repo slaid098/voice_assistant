@@ -56,7 +56,7 @@ jobs:
             --collect-all openwakeword `
             --collect-all onnxruntime `
             --collect-all scipy `
-            --collect-all scikit-learn `
+            --collect-all sklearn `
             src/voice_assistant/__main__.py
 
       - name: Package release
