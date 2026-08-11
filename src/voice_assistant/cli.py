@@ -9,7 +9,7 @@ from loguru import logger
 from voice_assistant.assistant import run_assistant_step
 from voice_assistant.audio.sounds import Sound, init_sounds, make_sound, speak_with_fallback
 from voice_assistant.config import settings
-from voice_assistant.nlu.wake_word import preload_wake_word_detector
+from voice_assistant.nlu.wake_word import active_wake_word_detector, preload_wake_word_detector
 from voice_assistant.speech.model_loader import ensure_vosk_tts_model
 from voice_assistant.speech.providers.vosk_tts import preload_vosk_tts
 from voice_assistant.speech.tts import speak
@@ -51,6 +51,10 @@ def main() -> None:
 
     init_sounds()
     preload_wake_word_detector()
+
+    if active_wake_word_detector() is None:
+        logger.critical("Модель активации не загружена — завершение работы")
+        sys.exit(1)
 
     if settings.tts_provider in {"vosk", "auto"} and not ensure_vosk_tts_model():
         speak("Загружаю модель голоса. Это займёт около минуты.")

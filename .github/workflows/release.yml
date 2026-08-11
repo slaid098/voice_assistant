@@ -55,6 +55,8 @@ jobs:
             --collect-all vosk_tts `
             --collect-all openwakeword `
             --collect-all onnxruntime `
+            --collect-all scipy `
+            --collect-all scikit-learn `
             src/voice_assistant/__main__.py
 
       - name: Package release

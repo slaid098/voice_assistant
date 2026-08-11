@@ -80,6 +80,7 @@ def test_active_detector_openwakeword(monkeypatch):
     monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
+    monkeypatch.setattr(ww_mod, "_load_failed", False)
 
     detector = ww_mod.active_wake_word_detector()
     assert detector is not None
@@ -97,6 +98,7 @@ def test_active_detector_unavailable(monkeypatch):
     monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: False)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
+    monkeypatch.setattr(ww_mod, "_load_failed", False)
 
     detector = ww_mod.active_wake_word_detector()
     assert detector is None
@@ -160,8 +162,47 @@ def test_active_detector_cached(monkeypatch):
     monkeypatch.setattr(ww_mod, "settings", settings)
     monkeypatch.setattr(ww_mod.OpenWakeWordDetector, "is_available", lambda self: True)
     monkeypatch.setattr(ww_mod, "_cached_detector", None)
+    monkeypatch.setattr(ww_mod, "_load_failed", False)
 
     first = ww_mod.active_wake_word_detector()
     second = ww_mod.active_wake_word_detector()
     assert first is not None
     assert first is second
+
+
+def test_active_detector_failure_cached(monkeypatch):
+    """После первой неудачи — второй вызов не создаёт новый детектор."""
+    import dataclasses
+    from pathlib import Path
+
+    import voice_assistant.config as config_mod
+    import voice_assistant.nlu.wake_word as ww_mod
+
+    settings = dataclasses.replace(config_mod._load_settings(), wake_word_detector="openwakeword")
+    monkeypatch.setattr(ww_mod, "settings", settings)
+    monkeypatch.setattr(ww_mod, "_cached_detector", None)
+    monkeypatch.setattr(ww_mod, "_load_failed", False)
+    monkeypatch.setattr(
+        ww_mod,
+        "resolve_openwakeword_model",
+        lambda: Path("/nonexistent/wiki.onnx"),
+    )
+
+    call_count = 0
+    mock_instance = MagicMock()
+    mock_instance.is_available.return_value = False
+
+    def fake_constructor():
+        nonlocal call_count
+        call_count += 1
+        return mock_instance
+
+    monkeypatch.setattr(ww_mod, "OpenWakeWordDetector", fake_constructor)
+
+    first = ww_mod.active_wake_word_detector()
+    second = ww_mod.active_wake_word_detector()
+
+    assert first is None
+    assert second is None
+    assert call_count == 1
+    assert ww_mod._load_failed is True

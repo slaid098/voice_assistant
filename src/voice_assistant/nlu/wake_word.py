@@ -130,6 +130,7 @@ class OpenWakeWordDetector:
 
 
 _cached_detector: OpenWakeWordDetector | None = None
+_load_failed: bool = False
 
 
 def active_wake_word_detector() -> WakeWordDetector | None:
@@ -139,17 +140,22 @@ def active_wake_word_detector() -> WakeWordDetector | None:
     Детектор кэшируется на уровне модуля — создаётся один раз при первом
     вызове (или через preload_wake_word_detector при старте), чтобы не
     пересоздавать ONNX-модель (~1-2s) на каждом цикле прослушивания.
+    При неудачной загрузке failure кэшируется (_load_failed) — повторные
+    вызовы возвращают None без retry, чтобы не плодить ошибки в цикле.
     """
-    global _cached_detector  # noqa: PLW0603 — module-level singleton pattern
+    global _cached_detector, _load_failed  # noqa: PLW0603 — module-level singleton pattern
 
     if _cached_detector is not None:
         return _cached_detector
+    if _load_failed:
+        return None
 
     if settings.wake_word_detector == "openwakeword":
         detector = OpenWakeWordDetector()
         if detector.is_available():
             _cached_detector = detector
             return detector
+        _load_failed = True
         logger.error("openWakeWord детектор недоступен — модель не загружена")
         return None
 

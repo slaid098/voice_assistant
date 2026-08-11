@@ -26,6 +26,7 @@ def test_main_loop_handles_keyboard_interrupt(monkeypatch):
     monkeypatch.setattr(cli_mod, "init_sounds", MagicMock())
     mock_wake = MagicMock()
     monkeypatch.setattr(cli_mod, "preload_wake_word_detector", mock_wake)
+    monkeypatch.setattr(cli_mod, "active_wake_word_detector", MagicMock(return_value=MagicMock()))
     mock_sound = MagicMock()
     monkeypatch.setattr(cli_mod, "make_sound", mock_sound)
     cli_mod.main()  # should exit cleanly
