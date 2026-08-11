@@ -4,32 +4,23 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libportaudio2
-      - run: uv sync --extra dev
-      - run: uv run ruff check src/ tests/
-      - run: uv run ruff format --check src/ tests/
-      - run: uv run mypy src/
-      - run: uv run pytest
-
   build:
-    needs: test
-    runs-on: windows-latest
+    runs-on: windows-amd64
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv sync --extra dev
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        shell: powershell
+        run: pip install uv
+      - name: Sync deps
+        shell: powershell
+        run: uv sync --extra dev
 
       - name: Download Vosk STT model
-        shell: pwsh
+        shell: powershell
         run: |
           $dir = "dist/models/vosk_stt"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -39,7 +30,7 @@ jobs:
           Remove-Item "$dir/vosk-model-small-ru-0.22.zip"
 
       - name: Download Vosk TTS model
-        shell: pwsh
+        shell: powershell
         run: |
           $dir = "dist/models/vosk_tts"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -48,26 +39,40 @@ jobs:
           Expand-Archive -Path "$dir/vosk-model-tts-ru-0.7-multi.zip" -DestinationPath $dir -Force
           Remove-Item "$dir/vosk-model-tts-ru-0.7-multi.zip"
 
+      - name: Copy openWakeWord model
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/models/openwakeword
+          Copy-Item models/openwakeword/wiki.onnx dist/models/openwakeword/
+
       - name: Build with PyInstaller
-        shell: pwsh
+        shell: powershell
         run: |
           uv run pyinstaller --noconfirm --onefile `
             --name voice-assistant `
             --collect-data voice_assistant `
             --collect-all vosk `
             --collect-all vosk_tts `
+            --collect-all openwakeword `
+            --collect-all onnxruntime `
             src/voice_assistant/__main__.py
 
       - name: Package release
-        shell: pwsh
+        shell: powershell
         run: |
           Copy-Item .env.template dist/.env
           Copy-Item README.md dist/
+          Copy-Item CHANGELOG.md dist/
           Copy-Item scripts/install_autorun.bat dist/
           Copy-Item scripts/remove_autorun.bat dist/
-          Compress-Archive -Path dist/voice-assistant.exe,dist/models,dist/.env,dist/README.md,dist/install_autorun.bat,dist/remove_autorun.bat `
+          Compress-Archive -Path dist/voice-assistant.exe,dist/models,dist/.env,dist/README.md,dist/CHANGELOG.md,dist/install_autorun.bat,dist/remove_autorun.bat `
             -DestinationPath dist/voice-assistant.zip
 
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist/voice-assistant.zip
+      - name: Create Forgejo release
+        shell: powershell
+        run: |
+          $headers = @{ "Authorization" = "token $env:GITHUB_TOKEN" }
+          $body = @{ tag_name = "$env:GITHUB_REF_NAME"; name = "$env:GITHUB_REF_NAME"; body = Get-Content CHANGELOG.md -Raw } | ConvertTo-Json
+          $resp = Invoke-RestMethod -Uri "$env:GITHUB_SERVER_URL/api/v1/repos/slaid098/voice_assistant/releases" -Method Post -Headers $headers -Body $body -ContentType "application/json"
+          $uploadUrl = "$env:GITHUB_SERVER_URL/api/v1/repos/slaid098/voice_assistant/releases/$($resp.id)/assets"
+          Invoke-RestMethod -Uri "$uploadUrl?name=voice-assistant.zip" -Method Post -Headers $headers -InFile dist/voice-assistant.zip -ContentType "application/zip"

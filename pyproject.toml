@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Voice assistant for visually impaired — YouTube, weather, timer, sounds"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [{ name = "slaid098" }]
 keywords = ["voice-assistant", "accessibility", "tts", "stt", "youtube"]
 classifiers = [
@@ -17,9 +17,7 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
@@ -57,9 +55,9 @@ dev = [
 voice-assistant = "voice_assistant.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/slaid098/voice_assistant"
-Repository = "https://github.com/slaid098/voice_assistant"
-Issues = "https://github.com/slaid098/voice_assistant/issues"
+Homepage = "https://git.slaid098.dev/slaid098/voice_assistant"
+Repository = "https://git.slaid098.dev/slaid098/voice_assistant"
+Issues = "https://git.slaid098.dev/slaid098/voice_assistant/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/voice_assistant"]

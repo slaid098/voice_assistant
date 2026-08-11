@@ -28,14 +28,11 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - run: uv sync --extra dev --python ${{ matrix.python }}
+      - run: uv sync --extra dev
       - run: if command -v sudo >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y libsdl2-dev libportaudio2; else apt-get update && apt-get install -y libsdl2-dev libportaudio2; fi
       - run: uv run pytest
 
