@@ -70,8 +70,6 @@ All settings have defaults — works out of the box. Optional `.env` file:
 3. Run `voice-assistant.exe`
 4. Optional: double-click `install_autorun.bat` to add to Windows startup
 
-Access at [https://git.slaid098.dev/slaid098/voice_assistant/releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
-
 ---
 
 ## 🇷🇺 Русский
@@ -130,8 +128,6 @@ Access at [https://git.slaid098.dev/slaid098/voice_assistant/releases](https://g
 2. Распакуйте в любую папку
 3. Запустите `voice-assistant.exe`
 4. Опционально: двойной клик `install_autorun.bat` для автозагрузки
-
-Доступ: [https://git.slaid098.dev/slaid098/voice_assistant/releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
 
 ---
 
