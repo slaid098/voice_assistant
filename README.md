@@ -65,14 +65,14 @@ All settings have defaults — works out of the box. Optional `.env` file:
 
 ### ⚡ Quick Start
 
-1. Download `voice-assistant.zip` from [releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
+1. Download `voice-assistant-windows-x64.zip` from [releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
 2. Unzip to any folder
 3. Run `voice-assistant.exe`
 4. Optional: double-click `install_autorun.bat` to add to Windows startup
 
 ### Requirements
 
-**OS:** Windows 10+ (Python 3.13 requires Windows 10 or later)
+**OS:** Windows 10+ (64-bit)
 
 ---
 
@@ -128,14 +128,14 @@ All settings have defaults — works out of the box. Optional `.env` file:
 
 ### ⚡ Быстрый старт
 
-1. Скачайте `voice-assistant.zip` со [страницы релизов](https://git.slaid098.dev/slaid098/voice_assistant/releases)
+1. Скачайте `voice-assistant-windows-x64.zip` со [страницы релизов](https://git.slaid098.dev/slaid098/voice_assistant/releases)
 2. Распакуйте в любую папку
 3. Запустите `voice-assistant.exe`
 4. Опционально: двойной клик `install_autorun.bat` для автозагрузки
 
 ### Требования
 
-**ОС:** Windows 10+ (Python 3.13 требует Windows 10 или новее)
+**ОС:** Windows 10+ (64-bit)
 
 ---
 

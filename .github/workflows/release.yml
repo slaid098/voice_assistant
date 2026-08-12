@@ -65,8 +65,17 @@ jobs:
           Copy-Item -Recurse dist/models/vosk_stt dist/voice-assistant/models/
           Copy-Item -Recurse dist/models/vosk_tts dist/voice-assistant/models/
           Compress-Archive -Path dist/voice-assistant `
-            -DestinationPath dist/voice-assistant.zip
+            -DestinationPath dist/voice-assistant-windows-x64.zip
 
       - name: Create Forgejo release
+        env:
+          RELEASE_PLATFORM: "Windows 10+ (64-bit)"
         shell: powershell
-        run: python scripts/create_release.py
+        run: |
+          $ErrorActionPreference = 'Stop'
+          curl.exe -fsSL "$env:GITHUB_SERVER_URL/slaid098/opencode-config/raw/branch/main/.opencode/scripts/create_release.py" -o scripts/create_release.py
+          curl.exe -fsSL "$env:GITHUB_SERVER_URL/slaid098/opencode-config/raw/branch/main/.opencode/scripts/release_notes.py" -o scripts/release_notes.py
+          Copy-Item pyproject.toml dist/
+          Copy-Item CHANGELOG.md dist/
+          Set-Location dist
+          python ..\scripts\create_release.py
