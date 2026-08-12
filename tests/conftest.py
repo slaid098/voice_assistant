@@ -6,11 +6,10 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _no_env() -> Generator[None, None, None]:
+def _no_env() -> Generator[None]:
     """Isolate env vars per test."""
     saved = dict(os.environ)
     os.environ.pop("WAKE_WORD", None)
-    os.environ.pop("OPENWEATHER_API_KEY", None)
     os.environ.pop("WEATHER_DEFAULT_CITY", None)
     os.environ.pop("YOUTUBE_SEARCH_LIMIT", None)
     yield

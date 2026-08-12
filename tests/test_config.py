@@ -14,7 +14,6 @@ def test_settings_defaults():
     assert s.silence_limit_ms == 1800
     assert s.youtube_search_limit == 10
     assert s.weather_default_city == "Костюковка"
-    assert s.openweather_api_key == ""
     assert s.tts_provider == "google"
     assert s.tts_cache_size == 50
 
@@ -41,12 +40,6 @@ def test_settings_wake_word_from_env(monkeypatch):
     monkeypatch.setenv("WAKE_WORD", "маркиза")
     s = _load_settings()
     assert s.wake_word == "маркиза"
-
-
-def test_settings_openweather_key_from_env(monkeypatch):
-    monkeypatch.setenv("OPENWEATHER_API_KEY", "test123")
-    s = _load_settings()
-    assert s.openweather_api_key == "test123"
 
 
 def test_settings_frozen():

@@ -1,109 +1,140 @@
-# Голосовой помощник
+# 🚀 voice-assistant
 
-Голосовой ассистент для незрячих людей. Создан для моей мамы и используется в повседневной жизни. Управление YouTube, погода, таймер, текущее время — голосом на русском языке. Звуковые ярлыки для accessibility.
+![Cover](assets/cover.png)
 
-## Возможности
+<!-- tagline-en:start -->
+> Voice assistant for the visually impaired — YouTube, weather, timer by voice.
+<!-- tagline-en:end -->
+<!-- tagline-ru:start -->
+> Голосовой ассистент для незрячих — YouTube, погода, таймер голосом.
+<!-- tagline-ru:end -->
 
-- **YouTube поиск** — голосовой запрос → озвучка результатов → навигация (дальше/назад/включить)
-- **Название видео** — «что играет?» → название текущего видео из заголовка окна браузера
-- **Погода** — текущий прогноз для любого города (Open-Meteo без ключа или OpenWeather)
-- **Время** — текущие дата и время
-- **Таймер** — голосовой таймер с озвучкой истечения
-- **Звуковые ярлыки** — бип перед записью, чайм при поиске, фанфара при старте, финал после команды
-- **Фраза-признак** — «Выполняю» перед долгими действиями, чтобы пользователь понимал, что ассистент работает
+[English](#-english) | [Русский](#-русский)
 
-## Установка
+---
 
-### Из релиза (Windows)
+## 🇺🇸 English
 
-1. Скачайте `voice-assistant.zip` со [страницы релизов](https://github.com/slaid098/voice_assistant/releases)
-2. Распакуйте в любую папку
-3. Запустите `voice-assistant.exe`
+<!-- summary-en:start -->
+### ❓ Why
+Built for my blind mother. Maximally reliable — no manual steps, no UI, voice-only interaction.
 
-Никаких настроек не требуется — всё работает из коробки.
+### ✅ What
+Voice assistant for visually impaired users. Russian language. Neural wake-word detection (openWakeWord), Google STT + gTTS, YouTube search, weather, timer.
+<!-- summary-en:end -->
 
-### Автозагрузка (опционально)
+<!-- features-en:start -->
+### Features
 
-- `install_autorun.bat` — двойной клик добавит ярлык в автозагрузку (программа будет запускаться при включении ПК)
-- `remove_autorun.bat` — двойной клик уберёт ярлык из автозагрузки
+| Feature | Description |
+|---------|-------------|
+| 🎙️ Wake word | Neural wake-word detection via openWakeWord (ONNX, offline). Say 'алекса' to activate. |
+| 🔍 YouTube search | Voice query → results announced → navigation (next/back/play). Opens in Vivaldi app-mode. |
+| 🌤️ Weather | Current forecast for default city via Open-Meteo (free, no API key). |
+| 🕐 Time | Current date and time, announced in natural language. |
+| ⏲️ Timer | Voice-activated timer with spoken expiration notification. |
+| 🎵 Now playing | Ask 'what's playing?' — announces current video title from browser window. |
+| 🔔 Sound cues | Earcons for accessibility: beep before recording, chime on search, fanfare on startup, done after command. |
+<!-- features-en:end -->
 
-### Из исходников
+### Commands
+Say the wake word (**алекса**), wait for the beep, then:
 
-```bash
-uv sync --extra dev
-uv run voice-assistant
-```
+| Command | Description |
+|---------|-------------|
+| **youtube [query]** | Search videos (e.g. 'youtube cats') |
+| **weather** | Forecast for default city |
+| **time** | Current date and time |
+| **timer [N] min/sec/hours** | Set a timer |
+| **what's playing** | Announce current video title |
+| **help** | List capabilities |
+
+During YouTube search: **next** / **back** / **play** / **stop**.
+
+### Configuration
+All settings have defaults — works out of the box. Optional `.env` file:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WAKE_WORD` | Wake word | `алекса` |
+| `STT_PROVIDER` | Speech recognition: `google` / `vosk` / `auto` | `google` |
+| `TTS_PROVIDER` | Text-to-speech: `google` / `vosk` / `auto` | `google` |
+| `WEATHER_DEFAULT_CITY` | Default city for weather | `Костюковка` |
+| `BROWSER_PATH` | Path to Vivaldi (empty = auto-detect) | (empty) |
+| `YOUTUBE_SEARCH_LIMIT` | Search results count | `10` |
+
+### ⚡ Quick Start
+
+1. Download `voice-assistant.zip` from [releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
+2. Unzip to any folder
+3. Run `voice-assistant.exe`
+4. Optional: double-click `install_autorun.bat` to add to Windows startup
+
+Access at [https://git.slaid098.dev/slaid098/voice_assistant/releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
+
+---
+
+## 🇷🇺 Русский
+
+<!-- summary-ru:start -->
+### ❓ Зачем
+Создан для моей мамы. Максимальная надёжность — никаких ручных шагов, без UI, только голос.
+
+### ✅ Что
+Голосовой ассистент для незрячих людей. Русский язык. Нейросетевое распознавание слова активации (openWakeWord), Google STT + gTTS, поиск на YouTube, погода, таймер.
+<!-- summary-ru:end -->
+
+<!-- features-ru:start -->
+### Фичи
+
+| Фича | Описание |
+|------|----------|
+| 🎙️ Слово активации | Нейросетевое распознавание через openWakeWord (ONNX, офлайн). Скажите 'алекса' для активации. |
+| 🔍 Поиск на YouTube | Голосовой запрос → озвучка результатов → навигация (дальше/назад/включить). Открывает в Vivaldi app-режиме. |
+| 🌤️ Погода | Текущий прогноз для города по умолчанию через Open-Meteo (бесплатно, без API-ключа). |
+| 🕐 Время | Текущие дата и время прописью. |
+| ⏲️ Таймер | Голосовой таймер с озвучкой истечения. |
+| 🎵 Что играет | Спросите 'что играет?' — назовёт текущее видео из заголовка окна браузера. |
+| 🔔 Звуковые ярлыки | Бип перед записью, чайм при поиске, фанфара при старте, финал после команды. |
+<!-- features-ru:end -->
+
+### Команды
+Скажите слово активации (**алекса**), дождитесь бипа, затем команду:
+
+| Команда | Описание |
+|---------|----------|
+| **ютуб [запрос]** | Поиск видео (например, «ютуб котики») |
+| **погода** | Прогноз для города по умолчанию |
+| **время** | Текущие дата и время |
+| **таймер [N] мин/сек/часов** | Поставить таймер |
+| **название** / **что играет** | Название текущего видео |
+| **помощь** | Список возможностей |
+
+Во время поиска YouTube: **дальше** / **назад** / **включить** / **стоп**.
 
 ### Конфигурация
-
-Скопируйте `.env.template` в `.env` и заполните при необходимости:
+Все настройки имеют значения по умолчанию — работает из коробки. Опциональный файл `.env`:
 
 | Переменная | Описание | По умолчанию |
-|-----------|----------|-------------|
+|----------|----------|-------------|
 | `WAKE_WORD` | Слово активации | `алекса` |
-| `STT_PROVIDER` | Провайдер распознавания команд: `google` / `vosk` / `auto` | `google` |
-| `STT_LANGUAGE` | Язык Google STT | `ru-RU` |
-| `WAKE_CACHE_RESET_MS` | Сброс детектора wake word каждые N мс тишины | `30000` |
-| `COMMAND_TIMEOUT_MS` | Таймаут ожидания команды (мс) | `6000` |
-| `MAX_MISUNDERSTAND` | Максимум непониманий подряд | `3` |
-| `SAMPLERATE` | Частота микрофона (Гц) | `16000` |
-| `CHUNK_MS` | Размер чанка записи (мс) | `100` |
-| `VAD_THRESHOLD` | Порог определения голоса (RMS) | `200.0` |
-| `SILENCE_LIMIT_MS` | Тишина для конца фразы (мс) | `1800` |
-| `TTS_PROVIDER` | Провайдер речи: `google` / `vosk` / `auto` | `google` |
-| `TTS_CACHE_SIZE` | Размер кэша динамических фраз | `50` |
-| `VOSK_STT_MODEL` | Модель Vosk STT | `vosk-model-small-ru-0.22` |
-| `VOSK_TTS_MODEL` | Модель Vosk TTS | `vosk-model-tts-ru-0.7-multi` |
-| `VOSK_TTS_SPEAKER` | Спикер Vosk TTS 0-4 | `2` |
+| `STT_PROVIDER` | Распознавание команд: `google` / `vosk` / `auto` | `google` |
+| `TTS_PROVIDER` | Синтез речи: `google` / `vosk` / `auto` | `google` |
 | `WEATHER_DEFAULT_CITY` | Город по умолчанию | `Костюковка` |
-| `OPENWEATHER_API_KEY` | Ключ OpenWeather API (пусто = Open-Meteo) | (пусто) |
+| `BROWSER_PATH` | Путь к Vivaldi (пусто = авто-detect) | (пусто) |
 | `YOUTUBE_SEARCH_LIMIT` | Количество результатов поиска | `10` |
-| `BROWSER_PATH` | Путь к Vivaldi (пусто = авто-detect на Windows) | (пусто) |
 
-## Команды
+### ⚡ Быстрый старт
 
-Скажите слово активации (например, «вики»), дождитесь бипа и «Слушаю.», затем команду:
+1. Скачайте `voice-assistant.zip` со [страницы релизов](https://git.slaid098.dev/slaid098/voice_assistant/releases)
+2. Распакуйте в любую папку
+3. Запустите `voice-assistant.exe`
+4. Опционально: двойной клик `install_autorun.bat` для автозагрузки
 
-### YouTube
+Доступ: [https://git.slaid098.dev/slaid098/voice_assistant/releases](https://git.slaid098.dev/slaid098/voice_assistant/releases)
 
-- **Ютуб [запрос]** — поиск видео (например, «ютуб котики»)
-- **Ютуб** (без запроса) — программа спросит «Что найти?»
+---
 
-После озвучки результата:
+## 💬 Support and contacts / Поддержка и контакты
 
-- **Включить** / **давай** / **это** — открыть видео в браузере
-- **Дальше** / **следующее** — следующий результат
-- **Назад** / **предыдущее** — предыдущий результат
-- **Стоп** — отмена поиска
-
-### Погода
-
-- **Погода** — прогноз для города по умолчанию
-- **Погода [город]** — прогноз для указанного города (например, «погода Минск»)
-
-### Другое
-
-- **Время** — текущие дата и время
-- **Таймер [N] минут/секунд/часов** — поставить таймер
-- **Название** / **что играет** — название текущего видео на YouTube
-- **Помощь** — список команд
-
-## Лайфхаки
-
-### YouTube
-
-Для просмотра YouTube установите браузер [Vivaldi](https://vivaldi.com) и сделайте его браузером по умолчанию в Windows (Параметры → Приложения → Браузер по умолчанию). Голосовой ассистент открывает видео в app-режиме — одно окно без вкладок и панели управления. Перед каждым новым запуском старое окно закрывается автоматически, поэтому вкладки не накапливаются.
-
-## Разработка
-
-```bash
-uv run voice-assistant                              # запуск
-uv run pytest                                       # тесты
-uv run ruff check src/ tests/                       # линтер
-uv run mypy src/                                    # типизация
-uv run xenon --max-absolute B --max-modules B src/  # сложность
-```
-
-## Лицензия
-
-MIT
+👉 **[slaid098.dev/contacts](https://slaid098.dev/contacts)**

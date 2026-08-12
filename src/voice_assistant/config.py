@@ -36,7 +36,6 @@ class Settings:
     vad_threshold: float
     silence_limit_ms: int
     youtube_search_limit: int
-    openweather_api_key: str
     weather_default_city: str
     tts_provider: str
     tts_cache_size: int
@@ -62,7 +61,6 @@ def _load_settings() -> Settings:
         vad_threshold=float(os.getenv("VAD_THRESHOLD", "200.0")),
         silence_limit_ms=int(os.getenv("SILENCE_LIMIT_MS", "1800")),
         youtube_search_limit=int(os.getenv("YOUTUBE_SEARCH_LIMIT", "10")),
-        openweather_api_key=os.getenv("OPENWEATHER_API_KEY", "").strip(),
         weather_default_city=os.getenv("WEATHER_DEFAULT_CITY", "Костюковка").strip(),
         tts_provider=os.getenv("TTS_PROVIDER", "google").strip().lower(),
         tts_cache_size=int(os.getenv("TTS_CACHE_SIZE", "50")),

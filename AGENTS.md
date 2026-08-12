@@ -44,7 +44,6 @@ openWakeWord for neural wake-word detection (instant, offline, ONNX).
 - `STT_PROVIDER` — command recognition: `google` / `vosk` / `auto` (default: `google`)
 - `STT_LANGUAGE` — Google STT language (default: `ru-RU`)
 - `MAX_MISUNDERSTAND` — max consecutive misunderstandings (default: 3)
-- `OPENWEATHER_API_KEY` — weather API key
 - `WEATHER_DEFAULT_CITY` — default city (default: "Костюковка")
 - `YOUTUBE_SEARCH_LIMIT` — search results count (default: 10)
 - `TTS_PROVIDER` — TTS engine: `google` / `vosk` / `auto` (default: `google`)
