@@ -10,6 +10,9 @@ import os
 import urllib.error
 import urllib.request
 import uuid
+from pathlib import Path
+
+from scripts.release_notes import extract_changelog_section
 
 server = os.environ["GITHUB_SERVER_URL"]
 token = os.environ["GITHUB_TOKEN"]
@@ -31,8 +34,7 @@ def api_request(path: str, method: str = "GET", data: bytes | None = None) -> ob
         return json.loads(body) if body else None
 
 
-with open("CHANGELOG.md", encoding="utf-8") as f:
-    note = f.read()
+note = extract_changelog_section(Path("CHANGELOG.md"), tag)
 
 # Delete existing release for this tag if present (idempotency)
 try:
