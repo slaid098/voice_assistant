@@ -70,6 +70,10 @@ All settings have defaults — works out of the box. Optional `.env` file:
 3. Run `voice-assistant.exe`
 4. Optional: double-click `install_autorun.bat` to add to Windows startup
 
+### Requirements
+
+**OS:** Windows 10+ (Python 3.13 requires Windows 10 or later)
+
 ---
 
 ## 🇷🇺 Русский
@@ -128,6 +132,10 @@ All settings have defaults — works out of the box. Optional `.env` file:
 2. Распакуйте в любую папку
 3. Запустите `voice-assistant.exe`
 4. Опционально: двойной клик `install_autorun.bat` для автозагрузки
+
+### Требования
+
+**ОС:** Windows 10+ (Python 3.13 требует Windows 10 или новее)
 
 ---
 
